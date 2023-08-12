@@ -1,0 +1,26 @@
+#![feature(const_trait_impl)]
+
+[package]
+name = "apollo"
+version = "0.1.2"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reed-solomon = "0.2"
+array-concat = "0.5"
+crc16 = "0.4.0"
+
+[profile.release]
+codegen-units = 1
+debug = false
+strip = true
+lto = true
+opt-level = 3
+
+[profile.release.package."*"] # +
+codegen-units = 1
+debug = false
+strip = true
+opt-level = 3
