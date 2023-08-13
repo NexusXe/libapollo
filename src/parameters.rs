@@ -11,16 +11,17 @@ pub const BLOCK_LENGTH: usize = 1; // Packet length = 2^BLOCK_LENGTH bytes
 pub const BLOCK_DELIMITER: u16 = 0xF0F0; // Delimiter between blocks
 pub const BLOCK_DELIMITER_SIZE: usize = core::mem::size_of_val(&BLOCK_DELIMITER);
 pub const BARE_MESSAGE_LENGTH_BYTES: usize = 56; // Total message length, in bytes.
-pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = BARE_MESSAGE_LENGTH_BYTES >>  (2 ^ BLOCK_LENGTH); // Total message length, in blocks
+const HEADER_PADDING_BYTES: usize = 16;
+pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES - HEADER_PADDING_BYTES) >>  (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the start header, end header, and FEC
 pub const PACKET_LENGTH_BYTES: usize = usize::pow(2, BLOCK_LENGTH as u32); // Packet length, in bytes
 
 pub const FEC_EXTRA_PACKETS: usize = 5; // Number of extra packets to send for FEC
 pub const FEC_K: usize = BARE_MESSAGE_LENGTH_BYTES >> BLOCK_LENGTH; // Ensures that each packet is 2^BLOCK_LENGTH bytes
 pub const FEC_M: usize = FEC_K + FEC_EXTRA_PACKETS;
 
-pub const MESSAGE_DATA_BLOCKS: usize = 5;   // DYNAMIC Data blocks
 pub const MESSAGE_PREFIX_BLOCKS: usize = 1; // CONSTANT Prefix blocks
 pub const MESSAGE_SUFFIX_BLOCKS: usize = 1; // CONSTANT Suffix blocks
+pub const MESSAGE_TOTAL_BLOCKS: usize = BARE_MESSAGE_LENGTH_BLOCKS + MESSAGE_PREFIX_BLOCKS + MESSAGE_SUFFIX_BLOCKS;
 
 // packet data constants
 
@@ -46,6 +47,8 @@ pub const START_END_HEADER: u16 = 0x1BE4; // Start of message header, in binary 
 pub const START_HEADER_DATA: [u8; CALLSIGN.len() + 2] = [START_END_HEADER.to_le_bytes()[0], START_END_HEADER.to_le_bytes()[1], CALLSIGN[0], CALLSIGN[1], CALLSIGN[2], CALLSIGN[3], CALLSIGN[4], CALLSIGN[5]]; // Start of message header data
 pub const END_HEADER_DATA:   [u8; CALLSIGN.len() + 2] = [CALLSIGN[0], CALLSIGN[1], CALLSIGN[2], CALLSIGN[3], CALLSIGN[4], CALLSIGN[5], START_END_HEADER.to_le_bytes()[0], START_END_HEADER.to_le_bytes()[1]]; // End of message header data
 
+pub const START_HEADER_DATA_LEN: usize = START_HEADER_DATA.len();
+pub const END_HEADER_DATA_LEN: usize = END_HEADER_DATA.len();
 
 pub const PACKET_BEGINNING_OFFSET: usize = START_HEADER_DATA.len() + BLOCK_DELIMITER_SIZE;
 

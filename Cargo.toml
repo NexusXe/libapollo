@@ -11,7 +11,8 @@ edition = "2021"
 reed-solomon = "0.2"
 array-concat = "0.5"
 crc16 = "0.4.0"
-
+zerocopy = "0.6"
+serde = { version = "1", default-features = false, features = ["derive"] }
 [profile.release]
 codegen-units = 1
 debug = false
