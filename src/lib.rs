@@ -8,7 +8,8 @@
 #![feature(trivial_bounds)]
 #![feature(generic_arg_infer)]
 #![feature(const_likely)]
-#![feature(inline_const)]
+
+
 
 use parameters::*;
 pub mod parameters;

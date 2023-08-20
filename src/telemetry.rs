@@ -172,6 +172,7 @@ mod tests {
             assert!(decimal_degrees.seconds() - 24.12f32 <= 0.15); // silly little floating point numbers
         }
     }
+
     #[test]
     fn test_decode_packet() {
         let mut _packet = make_packet_skeleton!(true);
@@ -299,7 +300,8 @@ pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE
     _min_example_packet.clone_from_slice(&make_packet_skeleton!(false)[0..BARE_MESSAGE_LENGTH_BYTES]);
 
     // create a bitmask, showing what's different between our maxed example packet and our bare packet
-    // 0 will indicate that the XOR was 0, thus meaning the values are static.
+    // 0 will indicate that the XOR was 0, thus meaning the values are static. we do this between both a max-ed and min-ed packet to ensure we don't have flukes.
+    // if, however, there are in fact flukes, FEC *should* take care of it.
 
     let mut packet_bitmask: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
     let mut _mask_max: u8;
@@ -345,7 +347,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
     }
     
     
-    let dec = Decoder::new(FEC_EXTRA_BYTES);
+
 
     let mut _packet_data_full: [u8; TOTAL_MESSAGE_LENGTH_BYTES] = [0u8; TOTAL_MESSAGE_LENGTH_BYTES];
     _packet_data_full[0..BARE_MESSAGE_LENGTH_BYTES].clone_from_slice(&_reconstructed_array);
@@ -357,7 +359,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
         _packet_data_full[i] = _reconstructed_array[i];
     }
 
-    let recovery_buffer = dec.correct(&mut _packet_data_full, Some(_known_erasures)).unwrap();
+    let recovery_buffer = Decoder::new(FEC_EXTRA_BYTES).correct(&mut _packet_data_full, Some(_known_erasures)).unwrap();
     let recovered = recovery_buffer.data();
 
     let mut recovered_packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
