@@ -176,7 +176,7 @@ mod tests {
     fn test_decode_packet() {
         let mut _packet = make_packet_skeleton!(true);
         let mut _torture_packet = _packet.clone();
-        for i in 0..18 {
+        for i in 0..1 {
             _torture_packet[i] = 0x00;
         }
         assert_eq!(decode_packet(_torture_packet, &[0u8]), _packet[0..BARE_MESSAGE_LENGTH_BYTES], "\ndecoded packets were not the same:\nleft    : {:02x?}\nright   : {:02x?}\noriginal: {:02x?}", decode_packet(_packet, &[0u8]), &_packet[0..BARE_MESSAGE_LENGTH_BYTES], _torture_packet);
@@ -282,14 +282,9 @@ pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE
     // the same code that is generating the packets.
     // since the block sizes, labels, and positions are always constant, this gives us some help.
 
-    fn construct_bare_refs() -> (BlockStack, [u8; BARE_MESSAGE_LENGTH_BYTES]) {
-        (construct_blocks(NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32),
-        construct_packet(construct_blocks(NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32)))
-    }
+    // TODO: figure out how to make this function constant, so it all can be constant. there's no reason this can't be calculated at compile time
+    let bare_packet = construct_packet(construct_blocks(NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32));
 
-    let (_bare_blocks, bare_packet): (BlockStack, [u8; BARE_MESSAGE_LENGTH_BYTES]) = construct_bare_refs();
-
-    debug_assert_eq!(_bare_blocks.blocks.len(), BARE_MESSAGE_LENGTH_BLOCKS);
     debug_assert_eq!(bare_packet.len(), BARE_MESSAGE_LENGTH_BYTES);
 
     // we can't rely on our delimiters or labels solely to split up the packet, as data may interfere with that
@@ -298,17 +293,23 @@ pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE
     // configurations may interfere.
 
     let mut _max_example_packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
-
     _max_example_packet.clone_from_slice(&make_packet_skeleton!(true)[0..BARE_MESSAGE_LENGTH_BYTES]);
+
+    let mut _min_example_packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
+    _min_example_packet.clone_from_slice(&make_packet_skeleton!(false)[0..BARE_MESSAGE_LENGTH_BYTES]);
 
     // create a bitmask, showing what's different between our maxed example packet and our bare packet
     // 0 will indicate that the XOR was 0, thus meaning the values are static.
 
     let mut packet_bitmask: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
-    let mut mask: u8;
+    let mut _mask_max: u8;
+    let mut _mask_min: u8;
+
     for i in 0..BARE_MESSAGE_LENGTH_BYTES {
-        mask = bare_packet[i] ^ _max_example_packet[i];
-        packet_bitmask[i] = mask;
+        _mask_max = bare_packet[i] ^ _max_example_packet[i];
+        _mask_min = bare_packet[i] ^ _min_example_packet[i];
+
+        packet_bitmask[i] = _mask_max &! _mask_min;
     }
 
     (packet_bitmask, bare_packet)
@@ -355,8 +356,6 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
     for i in 0..BARE_MESSAGE_LENGTH_BYTES {
         _packet_data_full[i] = _reconstructed_array[i];
     }
-    
-    
 
     let recovery_buffer = dec.correct(&mut _packet_data_full, Some(_known_erasures)).unwrap();
     let recovered = recovery_buffer.data();

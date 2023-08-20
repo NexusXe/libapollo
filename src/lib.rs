@@ -8,7 +8,7 @@
 #![feature(trivial_bounds)]
 #![feature(generic_arg_infer)]
 #![feature(const_likely)]
-
+#![feature(inline_const)]
 
 use parameters::*;
 pub mod parameters;
@@ -28,14 +28,14 @@ pub fn generate_packet(get_location: fn() -> ([u8; LATITUDE_SIZE], [u8; LONGITUD
         _temperature = get_temperature();
         (_latitude, _longitude) = get_location();
         
-        _altitude = 1337.69f32.to_be_bytes();
-        _voltage = 420.69f32.to_be_bytes();
-        _temperature = 420.1337f32.to_be_bytes();
-        _latitude = 69.1337f32.to_be_bytes();
-        _longitude = 69.420f32.to_be_bytes();
+        // _altitude = 1337.69f32.to_be_bytes();
+        // _voltage = 420.69f32.to_be_bytes();
+        // _temperature = 420.1337f32.to_be_bytes();
+        // _latitude = 69.1337f32.to_be_bytes();
+        // _longitude = 69.420f32.to_be_bytes();
 
-        _latitude = 41.1499498f32.to_be_bytes();
-        _longitude = (-87.2426919f32).to_be_bytes();
+        // _latitude = 41.1499498f32.to_be_bytes();
+        // _longitude = (-87.2426919f32).to_be_bytes();
 
         let _blocks = telemetry::construct_blocks(&_altitude, &_voltage, &_temperature, &_latitude, &_longitude);
     
