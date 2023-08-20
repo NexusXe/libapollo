@@ -176,7 +176,7 @@ mod tests {
     fn test_decode_packet() {
         let mut _packet = make_packet_skeleton!(true);
         let mut _torture_packet = _packet.clone();
-        for i in 0..1 {
+        for i in 0..18 {
             _torture_packet[i] = 0x00;
         }
         assert_eq!(decode_packet(_torture_packet, &[0u8]), _packet[0..BARE_MESSAGE_LENGTH_BYTES], "\ndecoded packets were not the same:\nleft    : {:02x?}\nright   : {:02x?}\noriginal: {:02x?}", decode_packet(_packet, &[0u8]), &_packet[0..BARE_MESSAGE_LENGTH_BYTES], _torture_packet);
