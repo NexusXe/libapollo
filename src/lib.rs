@@ -2,14 +2,11 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(non_upper_case_globals)]
+
 #![allow(incomplete_features)]
 #![feature(core_intrinsics)]
 #![feature(const_size_of_val)]
-#![feature(trivial_bounds)]
-#![feature(generic_arg_infer)]
 #![feature(const_likely)]
-
-
 
 use parameters::*;
 pub mod parameters;
