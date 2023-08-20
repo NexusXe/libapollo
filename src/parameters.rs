@@ -11,8 +11,7 @@ pub const BLOCK_LENGTH: usize = 1; // Packet length = 2^BLOCK_LENGTH bytes
 pub const BLOCK_DELIMITER: u16 = 0xF0F0; // Delimiter between blocks
 pub const BLOCK_DELIMITER_SIZE: usize = core::mem::size_of_val(&BLOCK_DELIMITER);
 pub const BARE_MESSAGE_LENGTH_BYTES: usize = 56; // Total message length, in bytes.
-const HEADER_PADDING_BYTES: usize = 16;
-pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES - HEADER_PADDING_BYTES) >>  (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the start header, end header, and FEC
+pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES) >>  (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the start header, end header, and FEC
 pub const PACKET_LENGTH_BYTES: usize = usize::pow(2, BLOCK_LENGTH as u32); // Packet length, in bytes
 
 pub const FEC_EXTRA_PACKETS: usize = 5; // Number of extra packets to send for FEC

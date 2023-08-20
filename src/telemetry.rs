@@ -9,16 +9,23 @@ use zerocopy::FromBytes;
 use core::intrinsics::*;
 use serde::*;
 
+#[macro_export]
+macro_rules! make_packet_skeleton {
+    ($x:expr) => {
+        generate_packet(location_filler::<$x>, f32_filler::<$x>, f32_filler::<$x>, f32_filler::<$x>)
+    };
+}
+
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Block<const S: usize> {
+pub struct Block {
     pub label: u8,
-    pub data: [u8; S],
+    pub data: &'static [u8],
     pub do_transmit_label: bool,
 }
 
-impl<const S: usize> Block<S> {
+impl Block {
     pub const fn len(&self) -> usize {
         // each block is its label, data, and then the delimiter
         (if likely(self.do_transmit_label) {BLOCK_LABEL_SIZE} else {0}) + self.data.len() + BLOCK_DELIMITER_SIZE
@@ -28,7 +35,7 @@ impl<const S: usize> Block<S> {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct BlockStack {
-    blocks: [Block<4>; BARE_MESSAGE_LENGTH_BLOCKS],
+    blocks: [Block; BARE_MESSAGE_LENGTH_BLOCKS],
     // altitude_block: Block<ALTITUDE_SIZE>,
     // voltage_block: Block<VOLTAGE_SIZE>,
     // temperature_block: Block<TEMPERATURE_SIZE>,
@@ -38,49 +45,51 @@ pub struct BlockStack {
 
 pub fn construct_blocks(altitude: &'static [u8; ALTITUDE_SIZE], voltage: &'static [u8; VOLTAGE_SIZE], temperature: &'static [u8; TEMPERATURE_SIZE], latitude: &'static [u8; LATITUDE_SIZE], longitude: &'static [u8; LONGITUDE_SIZE]) -> BlockStack {
 
-    // let _start_header_block: Block<START_HEADER_DATA_LEN> = Block {
-    //     label: 128,
-    //     data: START_HEADER_DATA,
-    //     do_transmit_label: false,
-    // };
-    let _altitude_block: Block<ALTITUDE_SIZE> = Block {
+    let _start_header_block: Block = Block {
+        label: 128,
+        data: &START_HEADER_DATA,
+        do_transmit_label: false,
+    };
+    let _altitude_block: Block = Block {
         label: 129,
-        data: *altitude,
+        data: altitude,
         do_transmit_label: true,
     };
-    let _voltage_block: Block<VOLTAGE_SIZE> = Block {
+    let _voltage_block: Block = Block {
         label:  130,
-        data: *voltage,
+        data: voltage,
         do_transmit_label: true,
     };
-    let _temperature_block: Block<TEMPERATURE_SIZE> = Block {
+    let _temperature_block: Block = Block {
         label: 131,
-        data: *temperature,
+        data: temperature,
         do_transmit_label: true,
     };
-    let _latitude_block: Block<LATITUDE_SIZE> = Block {
+    let _latitude_block: Block = Block {
         label: 132,
-        data: *latitude,
+        data: latitude,
         do_transmit_label: true,
     };
-    let _longitude_block: Block<LONGITUDE_SIZE> = Block {
+    let _longitude_block: Block = Block {
         label: 133,
-        data: *longitude,
+        data: longitude,
         do_transmit_label: true,
     };
-    // let _end_header_block: Block<END_HEADER_DATA_LEN> = Block {
-    //     label: 134,
-    //     data: END_HEADER_DATA,
-    //     do_transmit_label: true,
-    // };
+    let _end_header_block: Block = Block {
+        label: 134,
+        data: &END_HEADER_DATA,
+        do_transmit_label: true,
+    };
     BlockStack {
         // start_header_block: _start_header_block,
         blocks: [
+            _start_header_block,
             _altitude_block,
             _voltage_block,
             _temperature_block,
             _latitude_block,
-            _longitude_block
+            _longitude_block,
+            _end_header_block,
         ]
         // end_header_block: _end_header_block,
     }
@@ -92,14 +101,6 @@ pub fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYT
     let mut packet_index: usize = 0;
 
     unsafe {
-
-        // first we do the start header
-        packet[packet_index..packet_index + START_HEADER_DATA_LEN].copy_from_slice(&START_HEADER_DATA);
-        packet_index = unchecked_add(packet_index, START_HEADER_DATA_LEN);
-        packet[packet_index] = BLOCK_DELIMITER.to_le_bytes()[0];
-        packet[unchecked_add(packet_index, 1)] = BLOCK_DELIMITER.to_le_bytes()[1];
-        packet_index = unchecked_add(packet_index, 2);
-
         for block in _blockstack.blocks.iter() {
             if likely(block.do_transmit_label) { // afaict this has genuinely no effect on AVR. too bad!
                 packet[packet_index] = block.label.to_be();
@@ -113,14 +114,6 @@ pub fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYT
             packet[unchecked_add(packet_index, 1)] = BLOCK_DELIMITER.to_le_bytes()[1];
             packet_index = unchecked_add(packet_index, 2);
         }
-
-        // last we do the end header
-        packet[packet_index] = 255u8.to_le_bytes()[0];
-        packet_index = unchecked_add(packet_index, 1);
-        packet[packet_index..packet_index + END_HEADER_DATA_LEN].copy_from_slice(&END_HEADER_DATA);
-        packet_index = unchecked_add(packet_index, END_HEADER_DATA_LEN);
-        packet[packet_index] = BLOCK_DELIMITER.to_le_bytes()[0];
-        packet[unchecked_add(packet_index, 1)] = BLOCK_DELIMITER.to_le_bytes()[1];
     }
     
     packet
@@ -181,12 +174,12 @@ mod tests {
     }
     #[test]
     fn test_decode_packet() {
-        let mut _packet = generate_packet(location_filler, f32_filler, f32_filler, f32_filler);
+        let mut _packet = make_packet_skeleton!(true);
         let mut _torture_packet = _packet.clone();
-        for i in 0..14 {
+        for i in 0..18 {
             _torture_packet[i] = 0x00;
         }
-        assert_eq!(decode_packet(_torture_packet), _packet[0..BARE_MESSAGE_LENGTH_BYTES], "\ndecoded packets were not the same:\nleft    : {:02x?}\nright   : {:02x?}\noriginal: {:02x?}", decode_packet(_packet), &_packet[0..BARE_MESSAGE_LENGTH_BYTES], _torture_packet);
+        assert_eq!(decode_packet(_torture_packet, &[0u8]), _packet[0..BARE_MESSAGE_LENGTH_BYTES], "\ndecoded packets were not the same:\nleft    : {:02x?}\nright   : {:02x?}\noriginal: {:02x?}", decode_packet(_packet, &[0u8]), &_packet[0..BARE_MESSAGE_LENGTH_BYTES], _torture_packet);
     }
 }
 
@@ -262,49 +255,42 @@ pub struct DecodedDataPacket {
 const NO_VALUE_F16: &[u8; F16_DATA_SIZE as usize] = &[0u8; F16_DATA_SIZE as usize];
 const NO_VALUE_F32: &[u8; F32_DATA_SIZE as usize] = &[0u8; F32_DATA_SIZE as usize];
 
-const fn location_filler() -> ([u8; 4], [u8; 4]) {
-    ([0xFF as u8; 4], [0xFF as u8; 4])
-}
-
-const fn f32_filler() -> [u8; 4] {
-    [0xFF as u8; F32_DATA_SIZE as usize]
-}
-
-const fn f16_filler() -> [u8; 2] {
-    [0xFF as u8; F16_DATA_SIZE as usize]
-}
-
-
-
-pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES]) -> [u8; BARE_MESSAGE_LENGTH_BYTES] { // TODO: this entire function needs to be completely refactored
-
-    #[inline]
-    fn construct_bare_refs() -> (BlockStack, [u8; BARE_MESSAGE_LENGTH_BYTES]) {
-        (construct_blocks(NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32),
-        construct_packet(construct_blocks(NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32)))
+const fn location_filler<const TYPE: bool>() -> ([u8; F32_DATA_SIZE], [u8; F32_DATA_SIZE]) {
+    match TYPE {
+        true => ([0xFF as u8; F32_DATA_SIZE], [0xFF as u8; F32_DATA_SIZE]),
+        false => ([0x00 as u8; F32_DATA_SIZE], [0x00 as u8; F32_DATA_SIZE]),
     }
+    
+}
+
+const fn f32_filler<const TYPE: bool>() -> [u8; F32_DATA_SIZE] {
+    match TYPE {
+        true => [0xFF as u8; F32_DATA_SIZE as usize],
+        false => [0x00 as u8; F32_DATA_SIZE as usize],
+    }
+}
+
+const fn f16_filler<const TYPE: bool>() -> [u8; F16_DATA_SIZE] {
+    match TYPE {
+        true => [0xFF as u8; F16_DATA_SIZE as usize],
+        false => [0x00 as u8; F16_DATA_SIZE as usize],
+    }
+}
+
+pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE_MESSAGE_LENGTH_BYTES]) {
     // as a framework for decoding a packet, let's base everything off of
     // the same code that is generating the packets.
     // since the block sizes, labels, and positions are always constant, this gives us some help.
 
+    fn construct_bare_refs() -> (BlockStack, [u8; BARE_MESSAGE_LENGTH_BYTES]) {
+        (construct_blocks(NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32),
+        construct_packet(construct_blocks(NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32)))
+    }
 
-    let (_bare_blocks, _bare_packet): (BlockStack, [u8; BARE_MESSAGE_LENGTH_BYTES]) = construct_bare_refs();
+    let (_bare_blocks, bare_packet): (BlockStack, [u8; BARE_MESSAGE_LENGTH_BYTES]) = construct_bare_refs();
 
-    assert_eq!(_bare_blocks.blocks.len(), BARE_MESSAGE_LENGTH_BLOCKS);
-    assert_eq!(_bare_packet.len(), BARE_MESSAGE_LENGTH_BYTES);
-
-
-    let mut _packet_fec: [u8; FEC_EXTRA_BYTES] = [0u8; FEC_EXTRA_BYTES];
-    _packet_fec.clone_from_slice(&_packet[BARE_MESSAGE_LENGTH_BYTES..]);
-
-    assert_eq!(FEC_EXTRA_BYTES, TOTAL_MESSAGE_LENGTH_BYTES - BARE_MESSAGE_LENGTH_BYTES);
-
-    let mut _packet_data: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
-
-    _packet_data.clone_from_slice(&_packet[..BARE_MESSAGE_LENGTH_BYTES]);
-
-    assert_eq!(_packet_data.len() + _packet_fec.len(), _packet.len());
-
+    debug_assert_eq!(_bare_blocks.blocks.len(), BARE_MESSAGE_LENGTH_BLOCKS);
+    debug_assert_eq!(bare_packet.len(), BARE_MESSAGE_LENGTH_BYTES);
 
     // we can't rely on our delimiters or labels solely to split up the packet, as data may interfere with that
     // however, in this bare packet, this won't happen.
@@ -313,30 +299,52 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES]) -> [u8; BARE_MES
 
     let mut _max_example_packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
 
-    _max_example_packet.clone_from_slice(&generate_packet(location_filler, f32_filler, f32_filler, f32_filler)[0..BARE_MESSAGE_LENGTH_BYTES]);
+    _max_example_packet.clone_from_slice(&make_packet_skeleton!(true)[0..BARE_MESSAGE_LENGTH_BYTES]);
 
     // create a bitmask, showing what's different between our maxed example packet and our bare packet
     // 0 will indicate that the XOR was 0, thus meaning the values are static.
 
-    let mut _packet_bitmask: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
+    let mut packet_bitmask: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
     let mut mask: u8;
+    for i in 0..BARE_MESSAGE_LENGTH_BYTES {
+        mask = bare_packet[i] ^ _max_example_packet[i];
+        packet_bitmask[i] = mask;
+    }
 
+    (packet_bitmask, bare_packet)
+
+}
+
+pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures: &[u8]) -> [u8; BARE_MESSAGE_LENGTH_BYTES] { // TODO: this entire function needs to be completely refactored
+
+    let mut _packet_fec: [u8; FEC_EXTRA_BYTES] = [0u8; FEC_EXTRA_BYTES];
+    let mut _packet_data: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
     let mut _reconstructed_array: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
+    let mut _mask: u8;
+
+    _packet_data.clone_from_slice(&_packet[..BARE_MESSAGE_LENGTH_BYTES]);
+    _packet_fec.clone_from_slice(&_packet[BARE_MESSAGE_LENGTH_BYTES..]); // there is probably a better way of doing this
+
+
+    debug_assert_eq!(_packet_data.len() + _packet_fec.len(), _packet.len());
+    debug_assert_eq!(FEC_EXTRA_BYTES, TOTAL_MESSAGE_LENGTH_BYTES - BARE_MESSAGE_LENGTH_BYTES);
+    
+
+    let (_packet_bitmask, _bare_packet): ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE_MESSAGE_LENGTH_BYTES]) = find_packet_similarities();
+    
 
     for i in 0..BARE_MESSAGE_LENGTH_BYTES {
-        mask = _bare_packet[i] ^ _max_example_packet[i];
-        _packet_bitmask[i] = mask;
+        
+        _mask = _packet_bitmask[i];
 
-        match mask {
-            0 => _reconstructed_array[i] = _packet[i],
+        match _mask {
+            0 => _reconstructed_array[i] = _bare_packet[i],
             _ => _reconstructed_array[i] = _packet[i],
         }
     }
     
     
     let dec = Decoder::new(FEC_EXTRA_BYTES);
-
-    let known_erasures = [0];
 
     let mut _packet_data_full: [u8; TOTAL_MESSAGE_LENGTH_BYTES] = [0u8; TOTAL_MESSAGE_LENGTH_BYTES];
     _packet_data_full[0..BARE_MESSAGE_LENGTH_BYTES].clone_from_slice(&_reconstructed_array);
@@ -350,7 +358,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES]) -> [u8; BARE_MES
     
     
 
-    let recovery_buffer = dec.correct(&mut _packet_data_full, Some(&known_erasures)).unwrap();
+    let recovery_buffer = dec.correct(&mut _packet_data_full, Some(_known_erasures)).unwrap();
     let recovered = recovery_buffer.data();
 
     let mut recovered_packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
@@ -369,12 +377,11 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES]) -> [u8; BARE_MES
 }
 
 pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> DecodedDataPacket {
-    // TODO: these are evaluated at runtime, not compile time
-    assert_eq!(ALTITUDE_LOCATION_END - ALTITUDE_LOCATION_START, ALTITUDE_SIZE);
-    assert_eq!(VOLTAGE_LOCATION_END - VOLTAGE_LOCATION_START, VOLTAGE_SIZE);
-    assert_eq!(TEMPERATURE_LOCATION_END - TEMPERATURE_LOCATION_START, TEMPERATURE_SIZE);
-    assert_eq!(LATITUDE_LOCATION_END - LATITUDE_LOCATION_START, LATITUDE_SIZE);
-    assert_eq!(LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START, LONGITUDE_SIZE);
+    debug_assert_eq!(ALTITUDE_LOCATION_END - ALTITUDE_LOCATION_START, ALTITUDE_SIZE);
+    debug_assert_eq!(VOLTAGE_LOCATION_END - VOLTAGE_LOCATION_START, VOLTAGE_SIZE);
+    debug_assert_eq!(TEMPERATURE_LOCATION_END - TEMPERATURE_LOCATION_START, TEMPERATURE_SIZE);
+    debug_assert_eq!(LATITUDE_LOCATION_END - LATITUDE_LOCATION_START, LATITUDE_SIZE);
+    debug_assert_eq!(LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START, LONGITUDE_SIZE);
 
     let mut _conversion_slice: [u8; 4] = [0u8; 4];
     _conversion_slice.clone_from_slice(&_packet[ALTITUDE_LOCATION_START..ALTITUDE_LOCATION_END]);
@@ -400,7 +407,7 @@ pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> DecodedDa
 
 pub fn decode_packet_test() -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
 
-    let mut example_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES] = generate_packet(location_filler, f32_filler, f32_filler, f32_filler);
+    let mut example_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES] = make_packet_skeleton!(true);
     let dec = Decoder::new(FEC_EXTRA_BYTES);
 
     let known_erasures = [0];
