@@ -162,13 +162,11 @@ mod tests {
     
     #[test]
     fn test_decimal_to_dms() {
-        unsafe {
-            static mut decimal_degrees: f32 = 123.4567;
-            assert_eq!(decimal_degrees.degrees() as i16, 123i16);
-            assert_eq!(decimal_degrees.minutes() as u8, 27u8);
-            //assert_eq!(decimal_degrees.seconds(), 24.12f32);
-            assert!(decimal_degrees.seconds() - 24.12f32 <= 0.15); // silly little floating point numbers
-        }
+        static DECIMAL_DEGREES: f32 = 123.4567;
+        assert_eq!(DECIMAL_DEGREES.degrees() as i16, 123i16);
+        assert_eq!(DECIMAL_DEGREES.minutes() as u8, 27u8);
+        //assert_eq!(DECIMAL_DEGREES.seconds(), 24.12f32);
+        assert!(DECIMAL_DEGREES.seconds() - 24.12f32 <= 0.15); // silly little floating point numbers
     }
 
     #[test]
@@ -229,8 +227,8 @@ pub unsafe fn build_aprs_data() -> [u8; UI_FRAME_MAX] {
     
     let mic_e_data: [u8; 7];
     
-    let latitude: f32 = f32::from_be_bytes(crate::_latitude);
-    let longitude: f32 = f32::from_be_bytes(crate::_longitude);
+    let latitude: f32 = f32::from_be_bytes(crate::LATITUDE);
+    let longitude: f32 = f32::from_be_bytes(crate::LONGITUDE);
     
     let current_ui_frame: AX25Block = AX25Block { information_field: [0u8; 256], frame_check_sequence: [0u8; 2] };
     let fcs: [u8; 2] = build_fcs(&current_ui_frame.to_frame());
