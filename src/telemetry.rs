@@ -45,7 +45,7 @@ pub struct BlockStack {
 
 pub fn construct_blocks(altitude: &'static [u8; ALTITUDE_SIZE], voltage: &'static [u8; VOLTAGE_SIZE], temperature: &'static [u8; TEMPERATURE_SIZE], latitude: &'static [u8; LATITUDE_SIZE], longitude: &'static [u8; LONGITUDE_SIZE]) -> BlockStack {
 
-    let _start_header_block: Block = Block {
+    const _START_HEADER_BLOCK: Block = Block {
         label: 128,
         data: &START_HEADER_DATA,
         do_transmit_label: false,
@@ -75,23 +75,21 @@ pub fn construct_blocks(altitude: &'static [u8; ALTITUDE_SIZE], voltage: &'stati
         data: longitude,
         do_transmit_label: true,
     };
-    let _end_header_block: Block = Block {
+    const _END_HEADER_BLOCK: Block = Block {
         label: 134,
         data: &END_HEADER_DATA,
         do_transmit_label: true,
     };
     BlockStack {
-        // start_header_block: _start_header_block,
         blocks: [
-            _start_header_block,
+            _START_HEADER_BLOCK,
             _altitude_block,
             _voltage_block,
             _temperature_block,
             _latitude_block,
             _longitude_block,
-            _end_header_block,
+            _END_HEADER_BLOCK,
         ]
-        // end_header_block: _end_header_block,
     }
 }
 
