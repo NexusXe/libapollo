@@ -12,7 +12,7 @@ use serde::*;
 #[macro_export]
 macro_rules! make_packet_skeleton {
     ($x:expr) => {
-        generate_packet(location_filler::<$x>, f32_filler::<$x>, f32_filler::<$x>, f32_filler::<$x>)
+        generate_packet(f32_filler::<$x>(), f32_filler::<$x>(), f32_filler::<$x>(), (f32_filler::<$x>(), f32_filler::<$x>()))
     };
 }
 
@@ -54,6 +54,12 @@ pub struct BlockStack {
     // temperature_block: Block<TEMPERATURE_SIZE>,
     // latitude_block: Block<LATITUDE_SIZE>,
     // longitude_block: Block<LONGITUDE_SIZE>,
+}
+
+impl BlockStack {
+    pub const fn len(&self) -> usize {
+        self.blocks.len()
+    }
 }
 
 pub fn construct_blocks(_data: BlockStackData) -> BlockStack {
@@ -107,13 +113,15 @@ pub fn construct_blocks(_data: BlockStackData) -> BlockStack {
     }
 }
 
-pub fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+#[rustc_do_not_const_check]
+pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
     // Constructs a packet from the given blocks. Each block begins with its 1 byte label attribute (if do_transmit_label is true), followed by the data. Blocks are delimited by BLOCK_DELIMITER.
     let mut packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0; BARE_MESSAGE_LENGTH_BYTES];
     let mut packet_index: usize = 0;
 
     unsafe {
-        for block in _blockstack.blocks.iter() {
+        for i in 0.._blockstack.len() {
+            let block = _blockstack.blocks[i];
             if likely(block.do_transmit_label) { // afaict this has genuinely no effect on AVR. too bad!
                 packet[packet_index] = block.label.to_be();
                 packet_index = unchecked_add(packet_index, 1);
@@ -219,6 +227,7 @@ struct AX25Block {
 
 impl AX25Block {
     pub fn to_frame(&self) -> [u8; UI_FRAME_MAX] {
+        // TODO: there has to be a better way to do this
         let mut _frame = [0u8; UI_FRAME_MAX];
         _frame.clone_from_slice(&[*FLAG]);
         _frame.clone_from_slice(DST_ADDR);
@@ -394,6 +403,7 @@ pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDec
     debug_assert_eq!(LATITUDE_LOCATION_END - LATITUDE_LOCATION_START, LATITUDE_SIZE);
     debug_assert_eq!(LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START, LONGITUDE_SIZE);
 
+    // TODO: this can be done with a for loop based on parameters
     let mut _conversion_slice: [u8; 4] = [0u8; 4];
     _conversion_slice.clone_from_slice(&_packet[ALTITUDE_LOCATION_START..ALTITUDE_LOCATION_END]);
     let _altitude: f32 = f32::from_be_bytes(_conversion_slice);
