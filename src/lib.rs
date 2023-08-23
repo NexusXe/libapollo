@@ -7,9 +7,10 @@
 #![feature(const_size_of_val)]
 #![feature(const_likely)]
 
-use parameters::*;
 pub mod parameters;
 pub mod telemetry;
+use parameters::*;
+use telemetry::{BlockStack, BlockStackData};
 
 pub static mut LATITUDE: [u8; LATITUDE_SIZE] = [0u8; LATITUDE_SIZE];
 pub static mut LONGITUDE: [u8; LONGITUDE_SIZE] = [0u8; LONGITUDE_SIZE];
@@ -34,7 +35,10 @@ pub fn generate_packet(get_location: fn() -> ([u8; LATITUDE_SIZE], [u8; LONGITUD
         // _latitude = 41.1499498f32.to_be_bytes();
         // _longitude = (-87.2426919f32).to_be_bytes();
 
-        let _blocks: telemetry::BlockStack = telemetry::construct_blocks(&ALTITUDE, &VOLTAGE, &TEMPERATURE, &LATITUDE, &LONGITUDE);
+
+        
+        //let _blocks: BlockStack = telemetry::construct_blocks(&ALTITUDE, &VOLTAGE, &TEMPERATURE, &LATITUDE, &LONGITUDE);
+        let _blocks: BlockStack = telemetry::construct_blocks(BlockStackData { data_arr: [&ALTITUDE, &VOLTAGE, &TEMPERATURE, &LATITUDE, &LONGITUDE] } );
         let _packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = telemetry::construct_packet(_blocks);
 
         telemetry::encode_packet(&_packet)
@@ -56,7 +60,7 @@ mod tests {
             LATITUDE = 69.1337f32.to_be_bytes();
             LONGITUDE = 69.420f32.to_be_bytes();
 
-            let _blocks = telemetry::construct_blocks(&ALTITUDE, &VOLTAGE, &TEMPERATURE, &LATITUDE, &LONGITUDE);
+            let _blocks = telemetry::construct_blocks(BlockStackData { data_arr: [&ALTITUDE, &VOLTAGE, &TEMPERATURE, &LATITUDE, &LONGITUDE] } );
     
             let _packet = telemetry::construct_packet(_blocks);
             telemetry::encode_packet(&_packet);

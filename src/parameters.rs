@@ -11,22 +11,27 @@ pub const BLOCK_LENGTH: usize = 1; // Packet length = 2^BLOCK_LENGTH bytes
 pub const BLOCK_DELIMITER: u16 = 0xF0F0; // Delimiter between blocks
 pub const BLOCK_DELIMITER_SIZE: usize = core::mem::size_of_val(&BLOCK_DELIMITER);
 pub const BARE_MESSAGE_LENGTH_BYTES: usize = 56; // Total message length, in bytes.
-pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES) >>  (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the start header, end header, and FEC
+pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES) >>  (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the FEC
 pub const PACKET_LENGTH_BYTES: usize = usize::pow(2, BLOCK_LENGTH as u32); // Packet length, in bytes
 
 pub const FEC_EXTRA_PACKETS: usize = 5; // Number of extra packets to send for FEC
 pub const FEC_K: usize = BARE_MESSAGE_LENGTH_BYTES >> BLOCK_LENGTH; // Ensures that each packet is 2^BLOCK_LENGTH bytes
 pub const FEC_M: usize = FEC_K + FEC_EXTRA_PACKETS;
 
+
 pub const MESSAGE_PREFIX_BLOCKS: usize = 1; // CONSTANT Prefix blocks
 pub const MESSAGE_SUFFIX_BLOCKS: usize = 1; // CONSTANT Suffix blocks
-pub const MESSAGE_TOTAL_BLOCKS: usize = BARE_MESSAGE_LENGTH_BLOCKS + MESSAGE_PREFIX_BLOCKS + MESSAGE_SUFFIX_BLOCKS;
+
+const MESSAGE_NON_DATA_BLOCKS: usize = MESSAGE_PREFIX_BLOCKS + MESSAGE_SUFFIX_BLOCKS;
+
+pub const BLOCK_STACK_DATA_COUNT: usize = BARE_MESSAGE_LENGTH_BLOCKS - MESSAGE_NON_DATA_BLOCKS;
 
 // packet data constants
 
 pub const F64_DATA_SIZE: usize = core::mem::size_of::<f64>();
 pub const F32_DATA_SIZE: usize = core::mem::size_of::<f32>();
 pub const F16_DATA_SIZE: usize = 2;
+
 //pub const F16_DATA_SIZE: usize = core::mem::size_of::<half::f16>();
 
 pub const BLOCK_LABEL_SIZE: usize = 1;
