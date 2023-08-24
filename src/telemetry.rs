@@ -346,7 +346,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
         }
     }
     
-    
+
 
 
     let mut _packet_data_full: [u8; TOTAL_MESSAGE_LENGTH_BYTES] = [0u8; TOTAL_MESSAGE_LENGTH_BYTES];
