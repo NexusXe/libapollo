@@ -135,21 +135,21 @@ pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENG
     let mut packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0; BARE_MESSAGE_LENGTH_BYTES];
     let mut packet_index: usize = 0;
 
-    unsafe {
-        for i in 0.._blockstack.len() {
-            let block = _blockstack.blocks[i];
-            if likely(block.transmit_sections_to_bool()[0]) { // afaict this has genuinely no effect on AVR. too bad!
-                packet[packet_index] = block.label.to_be();
-                packet_index = unchecked_add(packet_index, 1);
-            }
-            packet[packet_index..(packet_index + block.data.len() as usize)].copy_from_slice(&block.data);
-            packet_index = unchecked_add(packet_index, block.data.len() as usize);
-            //packet_index += block.length as usize;
-            
-            packet[packet_index] = BLOCK_DELIMITER.to_le_bytes()[0];
-            packet[unchecked_add(packet_index, 1)] = BLOCK_DELIMITER.to_le_bytes()[1];
-            packet_index = unchecked_add(packet_index, 2);
+    let mut i = 0;
+    while i < _blockstack.len() {
+        let block = _blockstack.blocks[i];
+        if likely(block.transmit_sections_to_bool()[0]) { // afaict this has genuinely no effect on AVR. too bad!
+            packet[packet_index] = block.label.to_be();
+            packet_index += 1;
         }
+        packet[packet_index..(packet_index + block.data.len() as usize)].copy_from_slice(&block.data);
+        packet_index += block.data.len() as usize;
+        //packet_index += block.length as usize;
+        
+        packet[packet_index] = BLOCK_DELIMITER.to_le_bytes()[0];
+        packet[packet_index + 1] = BLOCK_DELIMITER.to_le_bytes()[1];
+        packet_index += 2;
+        i += 1;
     }
     
     packet
