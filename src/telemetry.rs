@@ -36,7 +36,7 @@ impl Block {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct BlockStackData {
-    pub data_arr: [&'static [u8]; BLOCK_STACK_DATA_COUNT],
+    pub data_arr: [[u8; 4]; BLOCK_STACK_DATA_COUNT],
 }
 
 #[repr(C)]
@@ -62,7 +62,9 @@ impl BlockStack {
     }
 }
 
-pub fn construct_blocks(_data: BlockStackData) -> BlockStack {
+
+
+pub fn construct_blocks(_data: &'static BlockStackData) -> BlockStack {
 
     const _START_HEADER_BLOCK: Block = Block {
         label: 128,
@@ -71,27 +73,27 @@ pub fn construct_blocks(_data: BlockStackData) -> BlockStack {
     };
     let _altitude_block: Block = Block {
         label: 129,
-        data: _data.data_arr[0],
+        data: &_data.data_arr[0],
         do_transmit_label: true,
     };
     let _voltage_block: Block = Block {
         label:  130,
-        data: _data.data_arr[1],
+        data: &_data.data_arr[1],
         do_transmit_label: true,
     };
     let _temperature_block: Block = Block {
         label: 131,
-        data: _data.data_arr[2],
+        data: &_data.data_arr[2],
         do_transmit_label: true,
     };
     let _latitude_block: Block = Block {
         label: 132,
-        data: _data.data_arr[3],
+        data: &_data.data_arr[3],
         do_transmit_label: true,
     };
     let _longitude_block: Block = Block {
         label: 133,
-        data: _data.data_arr[4],
+        data: &_data.data_arr[4],
         do_transmit_label: true,
     };
     const _END_HEADER_BLOCK: Block = Block {
@@ -303,7 +305,7 @@ pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE
     // since the block sizes, labels, and positions are always constant, this gives us some help.
 
     // TODO: figure out how to make this function constant, so it all can be constant. there's no reason this can't be calculated at compile time
-    let bare_packet = construct_packet(construct_blocks( BlockStackData { data_arr: [NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32] } ));
+    let bare_packet = construct_packet(construct_blocks( &BlockStackData { data_arr: [*NO_VALUE_F32, *NO_VALUE_F32, *NO_VALUE_F32, *NO_VALUE_F32, *NO_VALUE_F32] } ));
 
     debug_assert_eq!(bare_packet.len(), BARE_MESSAGE_LENGTH_BYTES);
 
