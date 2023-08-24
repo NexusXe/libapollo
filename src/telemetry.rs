@@ -12,7 +12,7 @@ use serde::*;
 #[macro_export]
 macro_rules! make_packet_skeleton {
     ($x:expr) => {
-        generate_packet(location_filler::<$x>, f32_filler::<$x>, f32_filler::<$x>, f32_filler::<$x>)
+        generate_packet(f32_filler::<$x>(), f32_filler::<$x>(), f32_filler::<$x>(), (f32_filler::<$x>(), f32_filler::<$x>()))
     };
 }
 
@@ -32,6 +32,19 @@ impl Block {
     }
 }
 
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct BlockStackData {
+    pub data_arr: [[u8; 4]; BLOCK_STACK_DATA_COUNT],
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct PacketDecodedData {
+    pub data_arr: [f32; BLOCK_STACK_DATA_COUNT],
+}
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct BlockStack {
@@ -43,65 +56,74 @@ pub struct BlockStack {
     // longitude_block: Block<LONGITUDE_SIZE>,
 }
 
-pub fn construct_blocks(altitude: &'static [u8; ALTITUDE_SIZE], voltage: &'static [u8; VOLTAGE_SIZE], temperature: &'static [u8; TEMPERATURE_SIZE], latitude: &'static [u8; LATITUDE_SIZE], longitude: &'static [u8; LONGITUDE_SIZE]) -> BlockStack {
+impl BlockStack {
+    pub const fn len(&self) -> usize {
+        self.blocks.len()
+    }
+}
 
-    let _start_header_block: Block = Block {
+
+
+pub fn construct_blocks(_data: &'static BlockStackData) -> BlockStack {
+
+    const _START_HEADER_BLOCK: Block = Block {
         label: 128,
         data: &START_HEADER_DATA,
         do_transmit_label: false,
     };
     let _altitude_block: Block = Block {
         label: 129,
-        data: altitude,
+        data: &_data.data_arr[0],
         do_transmit_label: true,
     };
     let _voltage_block: Block = Block {
         label:  130,
-        data: voltage,
+        data: &_data.data_arr[1],
         do_transmit_label: true,
     };
     let _temperature_block: Block = Block {
         label: 131,
-        data: temperature,
+        data: &_data.data_arr[2],
         do_transmit_label: true,
     };
     let _latitude_block: Block = Block {
         label: 132,
-        data: latitude,
+        data: &_data.data_arr[3],
         do_transmit_label: true,
     };
     let _longitude_block: Block = Block {
         label: 133,
-        data: longitude,
+        data: &_data.data_arr[4],
         do_transmit_label: true,
     };
-    let _end_header_block: Block = Block {
+    const _END_HEADER_BLOCK: Block = Block {
         label: 134,
         data: &END_HEADER_DATA,
         do_transmit_label: true,
     };
+
     BlockStack {
-        // start_header_block: _start_header_block,
         blocks: [
-            _start_header_block,
+            _START_HEADER_BLOCK,
             _altitude_block,
             _voltage_block,
             _temperature_block,
             _latitude_block,
             _longitude_block,
-            _end_header_block,
+            _END_HEADER_BLOCK,
         ]
-        // end_header_block: _end_header_block,
     }
 }
 
-pub fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+#[rustc_do_not_const_check]
+pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
     // Constructs a packet from the given blocks. Each block begins with its 1 byte label attribute (if do_transmit_label is true), followed by the data. Blocks are delimited by BLOCK_DELIMITER.
     let mut packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0; BARE_MESSAGE_LENGTH_BYTES];
     let mut packet_index: usize = 0;
 
     unsafe {
-        for block in _blockstack.blocks.iter() {
+        for i in 0.._blockstack.len() {
+            let block = _blockstack.blocks[i];
             if likely(block.do_transmit_label) { // afaict this has genuinely no effect on AVR. too bad!
                 packet[packet_index] = block.label.to_be();
                 packet_index = unchecked_add(packet_index, 1);
@@ -164,13 +186,11 @@ mod tests {
     
     #[test]
     fn test_decimal_to_dms() {
-        unsafe {
-            static mut decimal_degrees: f32 = 123.4567;
-            assert_eq!(decimal_degrees.degrees() as i16, 123i16);
-            assert_eq!(decimal_degrees.minutes() as u8, 27u8);
-            //assert_eq!(decimal_degrees.seconds(), 24.12f32);
-            assert!(decimal_degrees.seconds() - 24.12f32 <= 0.15); // silly little floating point numbers
-        }
+        static DECIMAL_DEGREES: f32 = 123.4567;
+        assert_eq!(DECIMAL_DEGREES.degrees() as i16, 123i16);
+        assert_eq!(DECIMAL_DEGREES.minutes() as u8, 27u8);
+        //assert_eq!(DECIMAL_DEGREES.seconds(), 24.12f32);
+        assert!(DECIMAL_DEGREES.seconds() - 24.12f32 <= 0.15); // silly little floating point numbers
     }
 
     #[test]
@@ -209,6 +229,7 @@ struct AX25Block {
 
 impl AX25Block {
     pub fn to_frame(&self) -> [u8; UI_FRAME_MAX] {
+        // TODO: there has to be a better way to do this
         let mut _frame = [0u8; UI_FRAME_MAX];
         _frame.clone_from_slice(&[*FLAG]);
         _frame.clone_from_slice(DST_ADDR);
@@ -231,8 +252,8 @@ pub unsafe fn build_aprs_data() -> [u8; UI_FRAME_MAX] {
     
     let mic_e_data: [u8; 7];
     
-    let latitude: f32 = f32::from_be_bytes(crate::_latitude);
-    let longitude: f32 = f32::from_be_bytes(crate::_longitude);
+    let latitude: f32 = f32::from_be_bytes(crate::LATITUDE);
+    let longitude: f32 = f32::from_be_bytes(crate::LONGITUDE);
     
     let current_ui_frame: AX25Block = AX25Block { information_field: [0u8; 256], frame_check_sequence: [0u8; 2] };
     let fcs: [u8; 2] = build_fcs(&current_ui_frame.to_frame());
@@ -284,7 +305,7 @@ pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE
     // since the block sizes, labels, and positions are always constant, this gives us some help.
 
     // TODO: figure out how to make this function constant, so it all can be constant. there's no reason this can't be calculated at compile time
-    let bare_packet = construct_packet(construct_blocks(NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32, NO_VALUE_F32));
+    let bare_packet = construct_packet(construct_blocks( &BlockStackData { data_arr: [*NO_VALUE_F32, *NO_VALUE_F32, *NO_VALUE_F32, *NO_VALUE_F32, *NO_VALUE_F32] } ));
 
     debug_assert_eq!(bare_packet.len(), BARE_MESSAGE_LENGTH_BYTES);
 
@@ -377,13 +398,14 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
 
 }
 
-pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> DecodedDataPacket {
+pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDecodedData {
     debug_assert_eq!(ALTITUDE_LOCATION_END - ALTITUDE_LOCATION_START, ALTITUDE_SIZE);
     debug_assert_eq!(VOLTAGE_LOCATION_END - VOLTAGE_LOCATION_START, VOLTAGE_SIZE);
     debug_assert_eq!(TEMPERATURE_LOCATION_END - TEMPERATURE_LOCATION_START, TEMPERATURE_SIZE);
     debug_assert_eq!(LATITUDE_LOCATION_END - LATITUDE_LOCATION_START, LATITUDE_SIZE);
     debug_assert_eq!(LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START, LONGITUDE_SIZE);
 
+    // TODO: this can be done with a for loop based on parameters
     let mut _conversion_slice: [u8; 4] = [0u8; 4];
     _conversion_slice.clone_from_slice(&_packet[ALTITUDE_LOCATION_START..ALTITUDE_LOCATION_END]);
     let _altitude: f32 = f32::from_be_bytes(_conversion_slice);
@@ -396,12 +418,8 @@ pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> DecodedDa
     _conversion_slice.clone_from_slice(&_packet[LONGITUDE_LOCATION_START..LONGITUDE_LOCATION_END]);
     let _longitude: f32 = f32::from_be_bytes(_conversion_slice);
 
-    DecodedDataPacket {
-        altitude: _altitude,
-        voltage: _voltage,
-        temperature: _temperature,
-        latitude: _latitude,
-        longitude: _longitude
+    PacketDecodedData {
+        data_arr: [_altitude, _voltage, _temperature, _latitude, _longitude],
     }
 }
 
