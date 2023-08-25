@@ -26,8 +26,7 @@ pub static mut ALTITUDE: [u8; ALTITUDE_SIZE] = [0u8; ALTITUDE_SIZE];
 pub static mut VOLTAGE: [u8; VOLTAGE_SIZE] = [0u8; VOLTAGE_SIZE];
 pub static mut TEMPERATURE: [u8; TEMPERATURE_SIZE] = [0u8; TEMPERATURE_SIZE];
 
-// TODO: use BlockStackData
-pub fn generate_packet(altitude: [u8; ALTITUDE_SIZE], voltage: [u8; VOLTAGE_SIZE], temperature: [u8; TEMPERATURE_SIZE], latlong: ([u8; LATITUDE_SIZE], [u8; LONGITUDE_SIZE])) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
+pub fn generate_packet(_blockstackdata: BlockStackData) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
     // _altitude = 1337.69f32.to_be_bytes();
     // _voltage = 420.69f32.to_be_bytes();
     // _temperature = 420.1337f32.to_be_bytes();
@@ -37,8 +36,6 @@ pub fn generate_packet(altitude: [u8; ALTITUDE_SIZE], voltage: [u8; VOLTAGE_SIZE
     // _latitude = 41.1499498f32.to_be_bytes();
     // _longitude = (-87.2426919f32).to_be_bytes();
 
-    let _blockstackdata: BlockStackData = BlockStackData { data_arr: [altitude, voltage, temperature, latlong.0, latlong.1] };
-    
     //let _blocks: BlockStack = telemetry::construct_blocks(&ALTITUDE, &VOLTAGE, &TEMPERATURE, &LATITUDE, &LONGITUDE);
     let _blocks: BlockStack = telemetry::construct_blocks(&_blockstackdata);
     let _packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = telemetry::construct_packet(_blocks);

@@ -13,7 +13,7 @@ use core::option::Option::Some;
 #[macro_export]
 macro_rules! make_packet_skeleton {
     ($x:expr) => {
-        generate_packet(f32_filler::<$x>(), f32_filler::<$x>(), f32_filler::<$x>(), (f32_filler::<$x>(), f32_filler::<$x>()))
+        generate_packet(BlockStackData{data_arr: [f32_filler::<$x>(), f32_filler::<$x>(), f32_filler::<$x>(), f32_filler::<$x>(), f32_filler::<$x>()]})
     };
 }
 
