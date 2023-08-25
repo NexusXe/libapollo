@@ -18,7 +18,7 @@ macro_rules! make_packet_skeleton {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum BlockData {
     DynData(Option<[u8; 4]>),
     StaticData(Option<&'static [u8]>),
@@ -49,7 +49,7 @@ impl BlockData {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize)]
 pub struct Block {
     pub label: u8,
     pub data: BlockData,
@@ -79,19 +79,19 @@ impl Block {
 
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct BlockStackData {
     pub data_arr: [[u8; 4]; BLOCK_STACK_DATA_COUNT],
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, AsBytes, FromBytes, Serialize, Deserialize)]
 pub struct PacketDecodedData {
     pub data_arr: [f32; BLOCK_STACK_DATA_COUNT],
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize)]
 pub struct BlockStack {
     blocks: [Block; BARE_MESSAGE_LENGTH_BLOCKS],
     // altitude_block: Block<ALTITUDE_SIZE>,
