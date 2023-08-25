@@ -1,8 +1,8 @@
-use crate::generate_packet;
-use crate::parameters::*;
-
 extern crate crc16;
 extern crate reed_solomon;
+
+use crate::generate_packet;
+use crate::parameters::*;
 use reed_solomon::{Encoder, Decoder};
 use zerocopy::AsBytes;
 use zerocopy::FromBytes;
@@ -112,13 +112,11 @@ const MAX_BLOCKSTACKDATA: BlockStackData = BlockStackData {
 };
 const MAX_BLOCKSTACK: BlockStack = construct_blocks(&MAX_BLOCKSTACKDATA);
 // const MAX_PACKET: [u8; BARE_MESSAGE_LENGTH_BYTES] = construct_packet(MAX_BLOCKSTACK);
-
 const MIN_BLOCKSTACKDATA: BlockStackData = BlockStackData {
     data_arr: [[0x00; 4]; BLOCK_STACK_DATA_COUNT],
 };
 const MIN_BLOCKSTACK: BlockStack = construct_blocks(&MIN_BLOCKSTACKDATA);
 // const MIN_PACKET: [u8; BARE_MESSAGE_LENGTH_BYTES] = construct_packet(MIN_BLOCKSTACK);
-
 pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
 
     const _START_HEADER_BLOCK: Block = Block {
