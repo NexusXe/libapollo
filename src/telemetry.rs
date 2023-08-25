@@ -53,28 +53,28 @@ impl BlockData {
 pub struct Block {
     pub label: u8,
     pub data: BlockData,
-    pub transmit_sections: u8,
+    pub do_transmit_label: bool,
 }
 
 impl Block {
     pub const fn len(&self) -> usize {
         // each block is its label, data, and then the delimiter
-        (if likely(self.transmit_sections_to_bool()[0]) {BLOCK_LABEL_SIZE} else {0}) + self.data.len() + BLOCK_DELIMITER_SIZE
+        (if likely(self.do_transmit_label) {BLOCK_LABEL_SIZE} else {0}) + self.data.len() + BLOCK_DELIMITER_SIZE
     }
-    pub const fn transmit_sections_to_bool(&self) -> [bool; 8] {
-        let mut bool_stack = [false; 8];
+    // pub const fn transmit_sections_to_bool(&self) -> [bool; 8] {
+    //     let mut bool_stack = [false; 8];
 
-        let mut n: u8 = 0b00000001;
-        let mut i = 0;
+    //     let mut n: u8 = 0b00000001;
+    //     let mut i = 0;
 
-        while i < 8 {
-            bool_stack[i] = (self.transmit_sections & n) != 0;
-            n = n << 1;
-            i += 1;
-        }
-        // label before, label after, BLOCK_DELIMITER before, BLOCK_DELIMITER after, CALLSIGN before, data, START_END_HEADER before, START_END_HEADER after
-        bool_stack
-    }
+    //     while i < 8 {
+    //         bool_stack[i] = (self.transmit_sections & n) != 0;
+    //         n = n << 1;
+    //         i += 1;
+    //     }
+    //     // label before, label after, BLOCK_DELIMITER before, BLOCK_DELIMITER after, CALLSIGN before, data, START_END_HEADER before, START_END_HEADER after
+    //     bool_stack
+    // }
 }
 
 
@@ -124,37 +124,37 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
     const _START_HEADER_BLOCK: Block = Block {
         label: 128,
         data: BlockData::StaticData(Some(&START_HEADER_DATA)),
-        transmit_sections: 0b00011010,
+        do_transmit_label: false,
     };
     let _altitude_block = Block {
         label: 129,
         data: BlockData::DynData(Some(_data.data_arr[0])),
-        transmit_sections: 0b10010000,
+        do_transmit_label: true,
     };
     let _voltage_block = Block {
         label:  130,
         data: BlockData::DynData(Some(_data.data_arr[1])),
-        transmit_sections: 0b10010000,
+        do_transmit_label: true
     };
     let _temperature_block = Block {
         label: 131,
         data: BlockData::DynData(Some(_data.data_arr[2])),
-        transmit_sections: 0b10010000,
+        do_transmit_label: true
     };
     let _latitude_block = Block {
         label: 132,
         data: BlockData::DynData(Some(_data.data_arr[3])),
-        transmit_sections: 0b10010000,
+        do_transmit_label: true
     };
     let _longitude_block = Block {
         label: 133,
         data: BlockData::DynData(Some(_data.data_arr[4])),
-        transmit_sections: 0b10010000,
+        do_transmit_label: true
     };
     const _END_HEADER_BLOCK: Block = Block {
         label: 134,
         data: BlockData::StaticData(Some(&END_HEADER_DATA)),
-        transmit_sections: 0b10111001,
+        do_transmit_label: true
     };
 
     BlockStack {
@@ -179,7 +179,7 @@ pub fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYT
     let mut i = 0;
     while i < _blockstack.len() {
         let block = _blockstack.blocks[i];
-        if likely(block.transmit_sections_to_bool()[0]) { // afaict this has genuinely no effect on AVR. too bad!
+        if likely(block.do_transmit_label) { // afaict this has genuinely no effect on AVR. too bad!
             packet[packet_index] = block.label.to_be();
             packet_index += 1;
         }
