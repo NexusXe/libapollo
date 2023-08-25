@@ -13,6 +13,7 @@
 #![feature(const_mut_refs)]
 #![feature(const_int_unchecked_arith)]
 #![feature(rustc_attrs)]
+#![feature(const_option)]
 
 pub mod parameters;
 pub mod telemetry;

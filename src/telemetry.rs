@@ -8,6 +8,7 @@ use zerocopy::AsBytes;
 use zerocopy::FromBytes;
 use core::intrinsics::*;
 use serde::*;
+use core::option::Option::Some;
 
 #[macro_export]
 macro_rules! make_packet_skeleton {
@@ -16,12 +17,42 @@ macro_rules! make_packet_skeleton {
     };
 }
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub enum BlockData {
+    DynData(Option<[u8; 4]>),
+    StaticData(Option<&'static [u8]>),
+}
+
+impl BlockData {
+    #[rustc_do_not_const_check]
+    pub const fn len(&self) -> usize {
+        match self {
+            BlockData::DynData(data) => data.as_ref().map(|d| d.len()).unwrap_or(0),
+            BlockData::StaticData(data) => data.as_ref().map(|d| d.len()).unwrap_or(0),
+        }
+    }
+
+    pub const fn which_type(&self) -> Option<bool> {
+        match self {
+            BlockData::DynData(_) => Some(true),
+            BlockData::StaticData(_) => Some(false),
+        }
+    }
+
+    pub const fn get_data(&self) -> &[u8] {
+        match self {
+            BlockData::DynData(data) => data.as_ref().unwrap(),
+            BlockData::StaticData(data) => data.as_ref().unwrap(),
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Block {
     pub label: u8,
-    pub data: [u8; 4],
+    pub data: BlockData,
     pub transmit_sections: u8,
 }
 
@@ -92,37 +123,37 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
 
     const _START_HEADER_BLOCK: Block = Block {
         label: 128,
-        data: [0u8; 4],
+        data: BlockData::StaticData(Some(&START_HEADER_DATA)),
         transmit_sections: 0b00011010,
     };
     let _altitude_block = Block {
         label: 129,
-        data: _data.data_arr[0],
+        data: BlockData::DynData(Some(_data.data_arr[0])),
         transmit_sections: 0b10010000,
     };
     let _voltage_block = Block {
         label:  130,
-        data: _data.data_arr[1],
+        data: BlockData::DynData(Some(_data.data_arr[1])),
         transmit_sections: 0b10010000,
     };
     let _temperature_block = Block {
         label: 131,
-        data: _data.data_arr[2],
+        data: BlockData::DynData(Some(_data.data_arr[2])),
         transmit_sections: 0b10010000,
     };
     let _latitude_block = Block {
         label: 132,
-        data: _data.data_arr[3],
+        data: BlockData::DynData(Some(_data.data_arr[3])),
         transmit_sections: 0b10010000,
     };
     let _longitude_block = Block {
         label: 133,
-        data: _data.data_arr[4],
+        data: BlockData::DynData(Some(_data.data_arr[4])),
         transmit_sections: 0b10010000,
     };
     const _END_HEADER_BLOCK: Block = Block {
         label: 134,
-        data: [0u8; 4],
+        data: BlockData::StaticData(Some(&END_HEADER_DATA)),
         transmit_sections: 0b10111001,
     };
 
@@ -139,8 +170,8 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
     }
 }
 
-#[rustc_do_not_const_check]
-pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+
+pub fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
     // Constructs a packet from the given blocks. Each block begins with its 1 byte label attribute (if do_transmit_label is true), followed by the data. Blocks are delimited by BLOCK_DELIMITER.
     let mut packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0; BARE_MESSAGE_LENGTH_BYTES];
     let mut packet_index: usize = 0;
@@ -152,7 +183,10 @@ pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENG
             packet[packet_index] = block.label.to_be();
             packet_index += 1;
         }
-        packet[packet_index..(packet_index + block.data.len() as usize)].copy_from_slice(&block.data);
+
+        let _blockdata = block.data.get_data();
+
+        packet[packet_index..(packet_index + block.data.len() as usize)].copy_from_slice(_blockdata);
         packet_index += block.data.len() as usize;
         //packet_index += block.length as usize;
         
@@ -329,7 +363,7 @@ pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE
     // since the block sizes, labels, and positions are always constant, this gives us some help.
 
     // TODO: figure out how to make this function constant, so it all can be constant. there's no reason this can't be calculated at compile time
-    let bare_packet = construct_packet(construct_blocks( &BlockStackData { data_arr: [*NO_VALUE_F32, *NO_VALUE_F32, *NO_VALUE_F32, *NO_VALUE_F32, *NO_VALUE_F32] } ));
+    let bare_packet = construct_packet(construct_blocks( &MIN_BLOCKSTACKDATA ));
 
     debug_assert_eq!(bare_packet.len(), BARE_MESSAGE_LENGTH_BYTES);
 
