@@ -6,6 +6,7 @@ use crate::parameters::*;
 use reed_solomon::{Encoder, Decoder};
 use zerocopy::AsBytes;
 use zerocopy::FromBytes;
+use zerocopy::FromZeroes;
 use core::intrinsics::*;
 use serde::*;
 use core::option::Option::Some;
@@ -85,7 +86,7 @@ pub struct BlockStackData {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, AsBytes, FromBytes, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, AsBytes, FromZeroes, FromBytes, Serialize, Deserialize)]
 pub struct PacketDecodedData {
     pub data_arr: [f32; BLOCK_STACK_DATA_COUNT],
 }
@@ -270,58 +271,67 @@ pub const PATH      : &'static [u8] = &APRS_PATH      ;
 pub const CTRL_FIELD: &'static  u8  = &APRS_CTRL_FIELD;
 pub const PRTCL_ID  : &'static  u8  = &APRS_PRTCL_ID  ; 
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-struct AX25InformationField {
-    data_type: u8,
-    data: &'static [u8],
-    data_extension: [u8; 7],
-}
-
-#[derive(Debug, Copy, Clone)]
-struct AX25Block {
-    information_field: [u8; 256],
-    frame_check_sequence: [u8; 2],
-}
-
-impl AX25Block {
-    pub fn to_frame(&self) -> [u8; UI_FRAME_MAX] {
-        // TODO: there has to be a better way to do this
-        let mut _frame = [0u8; UI_FRAME_MAX];
-
-        _frame.clone_from_slice(&[*FLAG]);
-        _frame.clone_from_slice(DST_ADDR);
-        _frame.clone_from_slice(SRC_ADDR);
-        _frame.clone_from_slice(PATH);
-        _frame.clone_from_slice(&[*CTRL_FIELD]);
-        _frame.clone_from_slice(&[*PRTCL_ID]);
-        _frame.clone_from_slice(&self.information_field);
-        _frame.clone_from_slice(&self.frame_check_sequence);
-        _frame
 
 
-    }
-}
+// #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+// struct AX25InformationField {
+//     data_type: u8,
+//     data: &'static [u8],
+//     data_extension: [u8; 7],
+// }
 
-const fn build_fcs(_frame: &[u8]) -> [u8; 2] {
-    let _fcs: [u8; 2] = [0x69 as u8, 0x69 as u8]; // placeholder
-    _fcs
-}
+// #[derive(Debug, Copy, Clone)]
+// struct AX25Block {
+//     information_field: [u8; 256],
+//     frame_check_sequence: [u8; 2],
+// }
 
-pub fn build_aprs_data(latitude: f32, longitude: f32) -> [u8; UI_FRAME_MAX] {
+// impl AX25Block {
+//     pub fn to_frame(&self) -> [u8; UI_FRAME_MAX] {
+//         // TODO: there has to be a better way to do this
+//         let mut _frame = [0u8; UI_FRAME_MAX];
+
+//         _frame.clone_from_slice(&[*FLAG]);
+//         _frame.clone_from_slice(DST_ADDR);
+//         _frame.clone_from_slice(SRC_ADDR);
+//         _frame.clone_from_slice(PATH);
+//         _frame.clone_from_slice(&[*CTRL_FIELD]);
+//         _frame.clone_from_slice(&[*PRTCL_ID]);
+//         _frame.clone_from_slice(&self.information_field);
+//         _frame.clone_from_slice(&self.frame_check_sequence);
+//         _frame
+
+
+//     }
+// }
+
+// const fn build_fcs(_frame: &[u8]) -> [u8; 2] {
+//     let _fcs: [u8; 2] = [0x69 as u8, 0x69 as u8]; // placeholder
+//     _fcs
+// }
+
+// pub fn build_aprs_data(latitude: f32, longitude: f32) -> [u8; UI_FRAME_MAX] {
     
-    let mic_e_data: [u8; 7];
+//     let mic_e_data: [u8; 7];
     
-    let current_ui_frame: AX25Block = AX25Block { information_field: [0u8; 256], frame_check_sequence: [0u8; 2] };
-    let fcs: [u8; 2] = build_fcs(&current_ui_frame.to_frame());
+//     let current_ui_frame: AX25Block = AX25Block { information_field: [0u8; 256], frame_check_sequence: [0u8; 2] };
+//     let fcs: [u8; 2] = build_fcs(&current_ui_frame.to_frame());
     
     
-    //let (degrees, minutes, seconds) = decimal_to_dms();
-    //println!("{}° {}' {}\"", degrees, minutes, seconds);
-    current_ui_frame.to_frame()
-}
+//     //let (degrees, minutes, seconds) = decimal_to_dms();
+//     //println!("{}° {}' {}\"", degrees, minutes, seconds);
+//     current_ui_frame.to_frame()
+// }
+
+// pub fn build_aprs_data(latitude: f32, longitude: f32) -> frame::Ax25Frame {
+//     frame::Ax25Frame {
+//         source:,
+//         destination: 
+//     }
+// }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, AsBytes, FromBytes, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, AsBytes, FromZeroes, FromBytes, Serialize, Deserialize)]
 pub struct DecodedDataPacket {
     pub altitude: f32,
     pub voltage: f32,
