@@ -10,7 +10,7 @@ edition = "2021"
 [dependencies]
 reed-solomon = "0.2"
 array-concat = "0.5"
-crc16 = "0.4.0"
+crc16 = "0.4"
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 
