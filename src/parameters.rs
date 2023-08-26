@@ -30,9 +30,6 @@ pub const BLOCK_STACK_DATA_COUNT: usize = BARE_MESSAGE_LENGTH_BLOCKS - MESSAGE_N
 
 pub const F64_DATA_SIZE: usize = core::mem::size_of::<f64>();
 pub const F32_DATA_SIZE: usize = core::mem::size_of::<f32>();
-pub const F16_DATA_SIZE: usize = 2;
-
-//pub const F16_DATA_SIZE: usize = core::mem::size_of::<half::f16>();
 
 pub const BLOCK_LABEL_SIZE: usize = 1;
 pub const ALTITUDE_SIZE: usize = F32_DATA_SIZE as usize;

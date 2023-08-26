@@ -261,7 +261,6 @@ mod tests {
     }
 }
 
-
 // http://www.aprs.org/doc/APRS101.PDF
 
 pub const FLAG      : &'static  u8  = &APRS_FLAG      ;
