@@ -108,15 +108,15 @@ impl BlockStack {
     }
 }
 
-const MAX_BLOCKSTACKDATA: BlockStackData = BlockStackData {
+const _MAX_BLOCKSTACKDATA: BlockStackData = BlockStackData {
     data_arr: [[0xFF; 4]; BLOCK_STACK_DATA_COUNT],
 };
-const MAX_BLOCKSTACK: BlockStack = construct_blocks(&MAX_BLOCKSTACKDATA);
+const _MAX_BLOCKSTACK: BlockStack = construct_blocks(&_MAX_BLOCKSTACKDATA);
 // const MAX_PACKET: [u8; BARE_MESSAGE_LENGTH_BYTES] = construct_packet(MAX_BLOCKSTACK);
 const MIN_BLOCKSTACKDATA: BlockStackData = BlockStackData {
     data_arr: [[0x00; 4]; BLOCK_STACK_DATA_COUNT],
 };
-const MIN_BLOCKSTACK: BlockStack = construct_blocks(&MIN_BLOCKSTACKDATA);
+const _MIN_BLOCKSTACK: BlockStack = construct_blocks(&MIN_BLOCKSTACKDATA);
 // const MIN_PACKET: [u8; BARE_MESSAGE_LENGTH_BYTES] = construct_packet(MIN_BLOCKSTACK);
 pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
 
@@ -340,28 +340,10 @@ pub struct DecodedDataPacket {
     pub longitude: f32
 }
 
-const NO_VALUE_F16: &[u8; F16_DATA_SIZE as usize] = &[0u8; F16_DATA_SIZE as usize];
-const NO_VALUE_F32: &[u8; F32_DATA_SIZE as usize] = &[0u8; F32_DATA_SIZE as usize];
-
-const fn location_filler<const TYPE: bool>() -> ([u8; F32_DATA_SIZE], [u8; F32_DATA_SIZE]) {
-    match TYPE {
-        true => ([0xFF as u8; F32_DATA_SIZE], [0xFF as u8; F32_DATA_SIZE]),
-        false => ([0x00 as u8; F32_DATA_SIZE], [0x00 as u8; F32_DATA_SIZE]),
-    }
-    
-}
-
 const fn f32_filler<const TYPE: bool>() -> [u8; F32_DATA_SIZE] {
     match TYPE {
         true => [0xFF as u8; F32_DATA_SIZE as usize],
         false => [0x00 as u8; F32_DATA_SIZE as usize],
-    }
-}
-
-const fn f16_filler<const TYPE: bool>() -> [u8; F16_DATA_SIZE] {
-    match TYPE {
-        true => [0xFF as u8; F16_DATA_SIZE as usize],
-        false => [0x00 as u8; F16_DATA_SIZE as usize],
     }
 }
 

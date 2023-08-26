@@ -1,9 +1,7 @@
 #![no_std]
-#![allow(dead_code)]
-#![allow(unused_variables)]
 #![allow(internal_features)]
-
 #![allow(incomplete_features)]
+
 #![feature(core_intrinsics)]
 #![feature(const_size_of_val)]
 #![feature(const_likely)]
