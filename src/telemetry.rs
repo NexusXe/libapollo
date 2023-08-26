@@ -287,6 +287,7 @@ impl AX25Block {
     pub fn to_frame(&self) -> [u8; UI_FRAME_MAX] {
         // TODO: there has to be a better way to do this
         let mut _frame = [0u8; UI_FRAME_MAX];
+
         _frame.clone_from_slice(&[*FLAG]);
         _frame.clone_from_slice(DST_ADDR);
         _frame.clone_from_slice(SRC_ADDR);
@@ -296,6 +297,8 @@ impl AX25Block {
         _frame.clone_from_slice(&self.information_field);
         _frame.clone_from_slice(&self.frame_check_sequence);
         _frame
+
+
     }
 }
 
@@ -304,12 +307,9 @@ const fn build_fcs(_frame: &[u8]) -> [u8; 2] {
     _fcs
 }
 
-pub unsafe fn build_aprs_data() -> [u8; UI_FRAME_MAX] {
+pub fn build_aprs_data(latitude: f32, longitude: f32) -> [u8; UI_FRAME_MAX] {
     
     let mic_e_data: [u8; 7];
-    
-    let latitude: f32 = f32::from_be_bytes(crate::LATITUDE);
-    let longitude: f32 = f32::from_be_bytes(crate::LONGITUDE);
     
     let current_ui_frame: AX25Block = AX25Block { information_field: [0u8; 256], frame_check_sequence: [0u8; 2] };
     let fcs: [u8; 2] = build_fcs(&current_ui_frame.to_frame());

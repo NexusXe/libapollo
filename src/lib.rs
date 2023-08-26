@@ -20,12 +20,6 @@ pub mod telemetry;
 use parameters::*;
 use telemetry::{BlockStack, BlockStackData};
 
-pub static mut LATITUDE: [u8; LATITUDE_SIZE] = [0u8; LATITUDE_SIZE];
-pub static mut LONGITUDE: [u8; LONGITUDE_SIZE] = [0u8; LONGITUDE_SIZE];
-pub static mut ALTITUDE: [u8; ALTITUDE_SIZE] = [0u8; ALTITUDE_SIZE];
-pub static mut VOLTAGE: [u8; VOLTAGE_SIZE] = [0u8; VOLTAGE_SIZE];
-pub static mut TEMPERATURE: [u8; TEMPERATURE_SIZE] = [0u8; TEMPERATURE_SIZE];
-
 pub fn generate_packet(_blockstackdata: BlockStackData) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
     // _altitude = 1337.69f32.to_be_bytes();
     // _voltage = 420.69f32.to_be_bytes();
