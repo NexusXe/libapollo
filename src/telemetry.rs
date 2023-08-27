@@ -1,7 +1,7 @@
 extern crate crc16;
 extern crate reed_solomon;
 
-use crate::generate_packet;
+use crate::{generate_packet, generate_packet_no_fec};
 use crate::parameters::*;
 use reed_solomon::{Encoder, Decoder};
 use zerocopy::AsBytes;
@@ -11,12 +11,22 @@ use core::intrinsics::*;
 use serde::*;
 use core::option::Option::Some;
 
-#[macro_export]
-macro_rules! make_packet_skeleton {
-    ($x:expr) => {
-        generate_packet(BlockStackData{data_arr: [f32_filler::<$x>(), f32_filler::<$x>(), f32_filler::<$x>(), f32_filler::<$x>(), f32_filler::<$x>()]})
+fn make_packet_skeleton(_type: bool) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
+    let _blockstackdata = match _type {
+        true => _MAX_BLOCKSTACKDATA,
+        false => MIN_BLOCKSTACKDATA,
     };
+    generate_packet(_blockstackdata)
 }
+
+const fn make_packet_skeleton_nofec(_type: bool) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+    let _blockstackdata = match _type {
+        true => _MAX_BLOCKSTACKDATA,
+        false => MIN_BLOCKSTACKDATA,
+    };
+    generate_packet_no_fec(_blockstackdata)
+}
+
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -169,8 +179,13 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
     }
 }
 
+/**
+Constructs a packet of shape `[u8; BARE_MESSAGE_LENGTH_BYTES]` from a `BlockStack` object.
 
-pub fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+TODO: make fn const
+*/
+#[rustc_do_not_const_check]
+pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
     // Constructs a packet from the given blocks. Each block begins with its 1 byte label attribute (if do_transmit_label is true), followed by the data. Blocks are delimited by BLOCK_DELIMITER.
     let mut packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0; BARE_MESSAGE_LENGTH_BYTES];
     let mut packet_index: usize = 0;
@@ -252,7 +267,7 @@ mod tests {
 
     #[test]
     fn test_decode_packet() {
-        let mut _packet = make_packet_skeleton!(true);
+        let mut _packet = make_packet_skeleton(true);
         let mut _torture_packet = _packet.clone();
         for i in 0..18 {
             _torture_packet[i] = 0x00;
@@ -339,13 +354,6 @@ pub struct DecodedDataPacket {
     pub longitude: f32
 }
 
-const fn f32_filler<const TYPE: bool>() -> [u8; F32_DATA_SIZE] {
-    match TYPE {
-        true => [0xFF as u8; F32_DATA_SIZE as usize],
-        false => [0x00 as u8; F32_DATA_SIZE as usize],
-    }
-}
-
 pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE_MESSAGE_LENGTH_BYTES]) {
     // as a framework for decoding a packet, let's base everything off of
     // the same code that is generating the packets.
@@ -362,10 +370,10 @@ pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE
     // configurations may interfere.
 
     let mut _max_example_packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
-    _max_example_packet.clone_from_slice(&make_packet_skeleton!(true)[0..BARE_MESSAGE_LENGTH_BYTES]);
+    _max_example_packet.clone_from_slice(&make_packet_skeleton_nofec(true));
 
     let mut _min_example_packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
-    _min_example_packet.clone_from_slice(&make_packet_skeleton!(false)[0..BARE_MESSAGE_LENGTH_BYTES]);
+    _min_example_packet.clone_from_slice(&make_packet_skeleton_nofec(false));
 
     // create a bitmask, showing what's different between our maxed example packet and our bare packet
     // 0 will indicate that the XOR was 0, thus meaning the values are static. we do this between both a max-ed and min-ed packet to ensure we don't have flukes.
@@ -473,7 +481,7 @@ pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDec
 
 pub fn decode_packet_test() -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
 
-    let mut example_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES] = make_packet_skeleton!(true);
+    let mut example_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES] = make_packet_skeleton(true);
     let dec = Decoder::new(FEC_EXTRA_BYTES);
 
     let known_erasures = [0];

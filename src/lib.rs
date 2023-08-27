@@ -5,13 +5,11 @@
 #![feature(core_intrinsics)]
 #![feature(const_size_of_val)]
 #![feature(const_likely)]
-
-#![feature(const_for)]
-#![feature(const_trait_impl)]
-#![feature(const_mut_refs)]
-#![feature(const_int_unchecked_arith)]
-#![feature(rustc_attrs)]
 #![feature(const_option)]
+#![feature(const_mut_refs)]
+#![feature(rustc_attrs)]
+
+
 
 pub mod parameters;
 pub mod telemetry;
@@ -33,6 +31,10 @@ pub fn generate_packet(_blockstackdata: BlockStackData) -> [u8; TOTAL_MESSAGE_LE
     let _packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = telemetry::construct_packet(_blocks);
 
     telemetry::encode_packet(&_packet)
+}
+
+pub const fn generate_packet_no_fec(_blockstackdata: BlockStackData) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+    telemetry::construct_packet(telemetry::construct_blocks(&_blockstackdata))
 }
 
 #[cfg(test)]
