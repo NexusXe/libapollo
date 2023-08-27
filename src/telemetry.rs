@@ -11,7 +11,8 @@ use core::intrinsics::*;
 use serde::*;
 use core::option::Option::Some;
 
-fn make_packet_skeleton(_type: bool) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
+#[rustc_do_not_const_check] // TODO: extremely bad idea
+const fn make_packet_skeleton(_type: bool) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
     let _blockstackdata = match _type {
         true => _MAX_BLOCKSTACKDATA,
         false => MIN_BLOCKSTACKDATA,
