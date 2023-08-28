@@ -18,6 +18,7 @@ pub const FEC_EXTRA_PACKETS: usize = 5; // Number of extra packets to send for F
 pub const FEC_K: usize = BARE_MESSAGE_LENGTH_BYTES >> BLOCK_LENGTH; // Ensures that each packet is 2^BLOCK_LENGTH bytes
 pub const FEC_M: usize = FEC_K + FEC_EXTRA_PACKETS;
 
+const _: () = assert!(FEC_EXTRA_BYTES == TOTAL_MESSAGE_LENGTH_BYTES - BARE_MESSAGE_LENGTH_BYTES, "FEC_BYTES_math_err");
 
 pub const MESSAGE_PREFIX_BLOCKS: usize = 1; // CONSTANT Prefix blocks
 pub const MESSAGE_SUFFIX_BLOCKS: usize = 1; // CONSTANT Suffix blocks
@@ -68,6 +69,11 @@ pub const LATITUDE_LOCATION_END: usize = LATITUDE_LOCATION_START + F32_DATA_SIZE
 pub const LONGITUDE_LOCATION_START: usize = LATITUDE_LOCATION_END + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE;
 pub const LONGITUDE_LOCATION_END: usize = LONGITUDE_LOCATION_START + F32_DATA_SIZE;
 
+const _: () = assert!(ALTITUDE_LOCATION_END - ALTITUDE_LOCATION_START == ALTITUDE_SIZE, "location_incongruency");
+const _: () = assert!(VOLTAGE_LOCATION_END - VOLTAGE_LOCATION_START == VOLTAGE_SIZE, "location_incongruency");
+const _: () = assert!(TEMPERATURE_LOCATION_END - TEMPERATURE_LOCATION_START == TEMPERATURE_SIZE, "location_incongruency");
+const _: () = assert!(LATITUDE_LOCATION_END - LATITUDE_LOCATION_START == LATITUDE_SIZE, "location_incongruency");
+const _: () = assert!(LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START == LONGITUDE_SIZE, "location_incongruency");
 
 // APRS related constants
 const APRS_SOFTWARE_VERSION_TXT: &str = "0.0.2";

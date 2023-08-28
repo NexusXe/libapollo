@@ -414,7 +414,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
         unreachable!()
     }
     
-    debug_assert_eq!(FEC_EXTRA_BYTES, TOTAL_MESSAGE_LENGTH_BYTES - BARE_MESSAGE_LENGTH_BYTES);
+    
     
 
     let (_packet_bitmask, _bare_packet): ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE_MESSAGE_LENGTH_BYTES]) = find_packet_similarities();
@@ -462,11 +462,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
 }
 
 pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDecodedData {
-    debug_assert_eq!(ALTITUDE_LOCATION_END - ALTITUDE_LOCATION_START, ALTITUDE_SIZE);
-    debug_assert_eq!(VOLTAGE_LOCATION_END - VOLTAGE_LOCATION_START, VOLTAGE_SIZE);
-    debug_assert_eq!(TEMPERATURE_LOCATION_END - TEMPERATURE_LOCATION_START, TEMPERATURE_SIZE);
-    debug_assert_eq!(LATITUDE_LOCATION_END - LATITUDE_LOCATION_START, LATITUDE_SIZE);
-    debug_assert_eq!(LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START, LONGITUDE_SIZE);
+    
 
     // TODO: this can be done with a for loop based on parameters
     let _altitude: f32 = f32::from_be_bytes(_packet[ALTITUDE_LOCATION_START..ALTITUDE_LOCATION_END].try_into().unwrap());
