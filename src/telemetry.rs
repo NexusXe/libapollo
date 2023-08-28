@@ -14,7 +14,7 @@ use core::option::Option::Some;
 #[rustc_do_not_const_check] // TODO: extremely bad idea
 const fn make_packet_skeleton(_type: bool) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
     let _blockstackdata = match _type {
-        true => _MAX_BLOCKSTACKDATA,
+        true => MAX_BLOCKSTACKDATA,
         false => MIN_BLOCKSTACKDATA,
     };
     generate_packet(_blockstackdata)
@@ -22,7 +22,7 @@ const fn make_packet_skeleton(_type: bool) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
 
 const fn make_packet_skeleton_nofec(_type: bool) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
     let _blockstackdata = match _type {
-        true => _MAX_BLOCKSTACKDATA,
+        true => MAX_BLOCKSTACKDATA,
         false => MIN_BLOCKSTACKDATA,
     };
     generate_packet_no_fec(_blockstackdata)
@@ -119,10 +119,10 @@ impl BlockStack {
     }
 }
 
-const _MAX_BLOCKSTACKDATA: BlockStackData = BlockStackData {
+const MAX_BLOCKSTACKDATA: BlockStackData = BlockStackData {
     data_arr: [[0xFF; 4]; BLOCK_STACK_DATA_COUNT],
 };
-const _MAX_BLOCKSTACK: BlockStack = construct_blocks(&_MAX_BLOCKSTACKDATA);
+const _MAX_BLOCKSTACK: BlockStack = construct_blocks(&MAX_BLOCKSTACKDATA);
 // const MAX_PACKET: [u8; BARE_MESSAGE_LENGTH_BYTES] = construct_packet(MAX_BLOCKSTACK);
 const MIN_BLOCKSTACKDATA: BlockStackData = BlockStackData {
     data_arr: [[0x00; 4]; BLOCK_STACK_DATA_COUNT],
