@@ -364,6 +364,10 @@ pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE
     let bare_packet = construct_packet(construct_blocks( &MIN_BLOCKSTACKDATA ));
 
     debug_assert_eq!(bare_packet.len(), BARE_MESSAGE_LENGTH_BYTES);
+    if bare_packet.len() != BARE_MESSAGE_LENGTH_BYTES {
+        unreachable!()
+    }
+    
 
     // we can't rely on our delimiters or labels solely to split up the packet, as data may interfere with that
     // however, in this bare packet, this won't happen.
@@ -405,8 +409,11 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
     _packet_data.clone_from_slice(&_packet[..BARE_MESSAGE_LENGTH_BYTES]);
     _packet_fec.clone_from_slice(&_packet[BARE_MESSAGE_LENGTH_BYTES..]); // there is probably a better way of doing this
 
-
     debug_assert_eq!(_packet_data.len() + _packet_fec.len(), _packet.len());
+    if (_packet_data.len() + _packet_fec.len()) != _packet.len() {
+        unreachable!()
+    }
+    
     debug_assert_eq!(FEC_EXTRA_BYTES, TOTAL_MESSAGE_LENGTH_BYTES - BARE_MESSAGE_LENGTH_BYTES);
     
 
@@ -462,17 +469,11 @@ pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDec
     debug_assert_eq!(LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START, LONGITUDE_SIZE);
 
     // TODO: this can be done with a for loop based on parameters
-    let mut _conversion_slice: [u8; 4] = [0u8; 4];
-    _conversion_slice.clone_from_slice(&_packet[ALTITUDE_LOCATION_START..ALTITUDE_LOCATION_END]);
-    let _altitude: f32 = f32::from_be_bytes(_conversion_slice);
-    _conversion_slice.clone_from_slice(&_packet[VOLTAGE_LOCATION_START..VOLTAGE_LOCATION_END]);
-    let _voltage: f32 = f32::from_be_bytes(_conversion_slice);
-    _conversion_slice.clone_from_slice(&_packet[TEMPERATURE_LOCATION_START..TEMPERATURE_LOCATION_END]);
-    let _temperature: f32 = f32::from_be_bytes(_conversion_slice);
-    _conversion_slice.clone_from_slice(&_packet[LATITUDE_LOCATION_START..LATITUDE_LOCATION_END]);
-    let _latitude: f32 = f32::from_be_bytes(_conversion_slice);
-    _conversion_slice.clone_from_slice(&_packet[LONGITUDE_LOCATION_START..LONGITUDE_LOCATION_END]);
-    let _longitude: f32 = f32::from_be_bytes(_conversion_slice);
+    let _altitude: f32 = f32::from_be_bytes(_packet[ALTITUDE_LOCATION_START..ALTITUDE_LOCATION_END].try_into().unwrap());
+    let _voltage: f32 = f32::from_be_bytes(_packet[VOLTAGE_LOCATION_START..VOLTAGE_LOCATION_END].try_into().unwrap());
+    let _temperature: f32 = f32::from_be_bytes(_packet[TEMPERATURE_LOCATION_START..TEMPERATURE_LOCATION_END].try_into().unwrap());
+    let _latitude: f32 = f32::from_be_bytes(_packet[LATITUDE_LOCATION_START..LATITUDE_LOCATION_END].try_into().unwrap());
+    let _longitude: f32 = f32::from_be_bytes(_packet[LONGITUDE_LOCATION_START..LONGITUDE_LOCATION_END].try_into().unwrap());
 
     PacketDecodedData {
         data_arr: [_altitude, _voltage, _temperature, _latitude, _longitude],
