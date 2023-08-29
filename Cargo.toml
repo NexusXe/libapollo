@@ -13,7 +13,7 @@ array-concat = "0.5"
 crc16 = "0.4"
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-crc = "3"
+crc = { git = "https://github.com/mrhooray/crc-rs.git" }
 
 [profile.release]
 codegen-units = 1
