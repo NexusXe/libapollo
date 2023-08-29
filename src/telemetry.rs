@@ -325,15 +325,14 @@ const fn build_fcs(_frame: &[u8]) -> [u8; 2] {
     X25.checksum(_frame).to_be_bytes()
 }
 
-pub fn build_aprs_data(latitude: f32, longitude: f32) -> [u8; UI_FRAME_MAX] {
+pub fn build_aprs_data(_latitude: f32, _longitude: f32) -> [u8; UI_FRAME_MAX] {
     
-    let mic_e_data: [u8; 7];
+    let _mic_e_data: [u8; 7];
     
-    let current_ui_frame: AX25Block = AX25Block { information_field: [0u8; 256], frame_check_sequence: [0u8; 2] };
-    let fcs: [u8; 2] = build_fcs(&current_ui_frame.to_frame());
+    let mut current_ui_frame: AX25Block = AX25Block { information_field: [0u8; 256], frame_check_sequence: [0u8; 2] };
     
-    
-    //let (degrees, minutes, seconds) = decimal_to_dms();
+    current_ui_frame.frame_check_sequence = build_fcs(&current_ui_frame.to_frame());
+
     //println!("{}° {}' {}\"", degrees, minutes, seconds);
     current_ui_frame.to_frame()
 }
