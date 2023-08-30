@@ -27,3 +27,6 @@ codegen-units = 1
 debug = false
 strip = true
 opt-level = 3
+
+[dev-dependencies]
+libc-print = "0.1.21"

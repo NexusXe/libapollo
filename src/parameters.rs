@@ -99,3 +99,8 @@ pub const APRS_INFO_FIELD_MAX: usize = 256;
 pub const APRS_FCS_SIZE: usize = 2;
 
 pub const UI_FRAME_MAX: usize  = 1 + APRS_DST_ADDR.len() + APRS_SRC_ADDR.len() + APRS_PATH.len() + 1 + 1 + APRS_INFO_FIELD_MAX + APRS_FCS_SIZE;
+
+
+// TNC constants
+
+pub const MAX_KISS_FRAME_SIZE: usize = 1024; // bytes
