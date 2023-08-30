@@ -326,7 +326,7 @@ const fn build_fcs(_frame: &[u8]) -> [u8; 2] {
 }
 
 pub fn build_aprs_data(_latitude: f32, _longitude: f32) -> [u8; UI_FRAME_MAX] {
-    todo!();
+    // todo!();
     let _mic_e_data: [u8; 7];
     let mut current_ui_frame: AX25Block = AX25Block { information_field: [0u8; 256], frame_check_sequence: [0u8; 2] };
     current_ui_frame.frame_check_sequence = build_fcs(&current_ui_frame.to_frame());
