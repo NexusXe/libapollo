@@ -1,15 +1,10 @@
 use crate::parameters::*;
+use core::fmt;
 
-const FEND: u8 = 0xC0;
-const FESC: u8 = 0xDB;
-const TFEND: u8 = 0xDC;
-const TFESC: u8 = 0xDD;
-
-#[derive(Clone, Copy, Debug)]
-enum OneOrTwoBytes {
-    OneByte([u8; 1]),
-    TwoBytes([u8; 2])
-}
+const FEND: u8 = 0xC0;  // 192
+const FESC: u8 = 0xDB;  // 219
+const TFEND: u8 = 0xDC; // 220
+const TFESC: u8 = 0xDD; // 221
 
 // impl OneOrTwoBytes {
 //     #[rustc_do_not_const_check]
@@ -21,21 +16,16 @@ enum OneOrTwoBytes {
 //     }
 // }
 
-impl Iterator for OneOrTwoBytes {
-    type Item = u8;
-    
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            OneOrTwoBytes::OneByte(_) => None,
-            OneOrTwoBytes::TwoBytes(data) => Some(data[1]),
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct PacketDelimitingBuffer {
     data: [u8; MAX_KISS_FRAME_SIZE],
     current_len: usize,
+}
+
+impl fmt::Display for PacketDelimitingBuffer {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:X?}", &self.data[0..self.current_len])
+    }
 }
 
 impl PacketDelimitingBuffer {
@@ -46,18 +36,20 @@ impl PacketDelimitingBuffer {
         }
     }
 
-    pub fn add_data(&mut self, _data: &[u8]) {
-        fn delimit_byte(_byte: u8) -> OneOrTwoBytes {
-            match _byte {
-                FEND => OneOrTwoBytes::TwoBytes([FESC, TFEND]),
-                FESC => OneOrTwoBytes::TwoBytes([FESC, TFESC]),
-                _ => OneOrTwoBytes::OneByte([_byte])
-            }
+    fn add_bytes(&mut self, _bytes: &[u8]) {
+        for _byte in _bytes {
+            self.data[self.current_len] = *_byte;
+            self.current_len += 1;
         }
-        for i in _data {
-            for x in delimit_byte(*i) {
-                self.data[self.current_len + 1] = x;
-                self.current_len += 1;
+    }
+
+    pub fn add_data(&mut self, _data: &[u8]) {
+        for _byte in _data {
+            match *_byte {
+                FEND => self.add_bytes(&[FESC, TFEND]),
+                FESC => self.add_bytes(&[FESC, TFESC]),
+                _ => self.add_bytes(&[*_byte])
+                
             }
         }
     }
@@ -73,13 +65,22 @@ pub fn delimit_packet(_packet: &[u8]) -> PacketDelimitingBuffer {
 mod tests {
     use super::*;
     extern crate libc_print;
-    use libc_print::std_name::{println, dbg};
+    //use libc_print::std_name::println;
     
     #[test]
     fn test_delimit_packet() {
-        let x = &delimit_packet(&[0x94, FEND, 0x11, FESC]).data[0..4];
-        for i in x {
-            println!("{:02x}", i);
-        }
+        let _delimitedpacketbuffer = delimit_packet(&[0x94, FEND, 0x11, FESC]);
+        let _delimitedpacketdata = &_delimitedpacketbuffer.data[0.._delimitedpacketbuffer.current_len];
+        // for i in _delimitedpacketdata {
+        //     match *i {
+        //         FEND => println!("FEND"),
+        //         FESC => println!("FESC"),
+        //         TFEND => println!("TFEND"),
+        //         TFESC => println!("TFESC"),
+        //         _ => println!("0x{:02X}", i),
+        //     }
+        // }
+        const EXPECTED_DATA: &[u8] = &[0x94, FESC, TFEND, 0x11, FESC, TFESC];
+        assert!(_delimitedpacketdata == EXPECTED_DATA, "packet delimiting went wrong! expected {:X?}, found {}", EXPECTED_DATA, _delimitedpacketbuffer)
     }
 }
