@@ -179,11 +179,10 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
 }
 
 /**
-    Constructs a packet of shape `[u8; BARE_MESSAGE_LENGTH_BYTES]` from a `BlockStack` object.
+Constructs a packet of shape `[u8; BARE_MESSAGE_LENGTH_BYTES]` from a `BlockStack` object.
 
-    TODO: make fn const
-    */
-
+TODO: make fn const
+*/
 #[rustc_do_not_const_check]
 pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
     // Constructs a packet from the given blocks. Each block begins with its 1 byte label attribute (if do_transmit_label is true), followed by the data. Blocks are delimited by BLOCK_DELIMITER.
