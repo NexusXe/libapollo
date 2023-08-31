@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(internal_features)]
-#![allow(incomplete_features)]
 
 #![feature(core_intrinsics)]
 #![feature(const_size_of_val)]
@@ -8,7 +7,6 @@
 #![feature(const_option)]
 #![feature(const_mut_refs)]
 #![feature(rustc_attrs)]
-#![feature(const_trait_impl)]
 
 
 pub mod parameters;
@@ -62,7 +60,10 @@ mod tests {
     }
 }
 
+
 pub mod telemetry {
+    
+    
     use crate::parameters::*;
     use crate::easypacket::{generate_packet, generate_packet_no_fec};
     use reed_solomon::{Encoder, Decoder};
@@ -247,6 +248,7 @@ pub mod telemetry {
 
     TODO: make fn const
     */
+    
     #[rustc_do_not_const_check]
     pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
         // Constructs a packet from the given blocks. Each block begins with its 1 byte label attribute (if do_transmit_label is true), followed by the data. Blocks are delimited by BLOCK_DELIMITER.
