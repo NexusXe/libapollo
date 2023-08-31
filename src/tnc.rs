@@ -55,7 +55,66 @@ impl PacketDelimitingBuffer {
     }
 }
 
-pub fn delimit_packet(_packet: &[u8]) -> PacketDelimitingBuffer {
+// https://www.ax25.net/kiss.aspx
+const CMD_DATAFRAME: u8 = 0;
+const CMD_TXDELAY: u8 = 1;
+const CMD_P: u8 = 2;
+const CMD_SLOTTIME: u8 = 3;
+const CMD_TXTAIL: u8 = 4;
+const CMD_FULLDUPLEX: u8 = 5;
+const CMD_SETHARDWARE: u8 = 6;
+const CMD_RETURN: u8 = 0xFF;
+
+struct SettingsArray{
+    settings: [u8; 6],
+}
+
+static mut SETTINGS_ARRAY: SettingsArray = SettingsArray {
+    settings: [
+    50,
+    63,
+    10,
+    0,
+    false as u8,
+    0
+    ]
+};
+
+trait SettingsConfiguration {
+    fn txdelay(&self) -> u8;
+    fn p(&self) -> u8;
+    fn slottime(&self) -> u8;
+    fn txtail(&self) -> u8;
+    fn fullduplex(&self) -> u8;
+    fn sethardware(&self) -> u8;
+}
+
+impl SettingsConfiguration for SettingsArray {
+    fn txdelay(&self) -> u8 {self.settings[0]}
+    fn p(&self) -> u8 {self.settings[1]}
+    fn slottime(&self) -> u8 {self.settings[2]}
+    fn txtail(&self) -> u8 {self.settings[3]}
+    fn fullduplex(&self) -> u8 {self.settings[4]}
+    fn sethardware(&self) -> u8 {self.settings[5]}
+}
+
+static mut CURRENT_CONFIGURATION: SettingsArray = SettingsArray {
+    settings: [ 
+    50u8,
+    63u8,
+    10u8,
+    0u8,
+    false as u8,
+    0u8
+    ]
+};
+
+pub struct TncFrame {
+    command: u8,
+    data: Option<u8>,
+}
+
+fn delimit_packet(_packet: &[u8]) -> PacketDelimitingBuffer {
     let mut delimited_packet_buffer = PacketDelimitingBuffer::new();
     delimited_packet_buffer.add_data(_packet);
     delimited_packet_buffer
@@ -82,5 +141,39 @@ mod tests {
         // }
         const EXPECTED_DATA: &[u8] = &[0x94, FESC, TFEND, 0x11, FESC, TFESC];
         assert!(_delimitedpacketdata == EXPECTED_DATA, "packet delimiting went wrong! expected {:X?}, found {}", EXPECTED_DATA, _delimitedpacketbuffer)
+    }
+}
+
+pub fn return_frame(_type: u8, _data: Option<u8>) -> Option<TncFrame> {
+    match _type {
+        CMD_DATAFRAME => (),
+        CMD_TXDELAY => (),
+        CMD_P => (),
+        CMD_SLOTTIME => (),
+        CMD_TXTAIL => (),
+        CMD_FULLDUPLEX => (),
+        CMD_SETHARDWARE => (),
+        CMD_RETURN | _ => (), // do nothing
+    }
+    Some(TncFrame {
+        command: _type,
+        data: _data,
+    })
+}
+
+pub fn change_option(_type: u8, _data: u8) -> Option<TncFrame> {
+    match _type {
+        CMD_DATAFRAME => return None,
+        CMD_TXDELAY => (),
+        CMD_P => (),
+        CMD_SLOTTIME => (),
+        CMD_TXTAIL => (),
+        CMD_FULLDUPLEX => (),
+        CMD_SETHARDWARE => (),
+        CMD_RETURN | _ => return None, // do nothing
+    }
+    unsafe {
+        SETTINGS_ARRAY.settings[(_type-1) as usize] = _data;
+        Some(TncFrame { command: _type, data: Some(SETTINGS_ARRAY.settings[(_type-1) as usize]) })
     }
 }
