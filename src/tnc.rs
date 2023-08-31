@@ -98,17 +98,6 @@ impl SettingsConfiguration for SettingsArray {
     fn sethardware(&self) -> u8 {self.settings[5]}
 }
 
-static mut CURRENT_CONFIGURATION: SettingsArray = SettingsArray {
-    settings: [ 
-    50u8,
-    63u8,
-    10u8,
-    0u8,
-    false as u8,
-    0u8
-    ]
-};
-
 pub struct TncFrame {
     command: u8,
     data: Option<u8>,
