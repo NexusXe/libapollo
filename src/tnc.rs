@@ -65,38 +65,38 @@ const CMD_FULLDUPLEX: u8 = 5;
 const CMD_SETHARDWARE: u8 = 6;
 const CMD_RETURN: u8 = 0xFF;
 
-struct SettingsArray{
-    settings: [u8; 6],
-}
+// struct SettingsArray{
+//     settings: [u8; 6],
+// }
 
-static mut SETTINGS_ARRAY: SettingsArray = SettingsArray {
-    settings: [
-    50,
-    63,
-    10,
-    0,
-    false as u8,
-    0
-    ]
-};
+// static mut SETTINGS_ARRAY: SettingsArray = SettingsArray {
+//     settings: [
+//     50,
+//     63,
+//     10,
+//     0,
+//     false as u8,
+//     0
+//     ]
+// };
 
-trait SettingsConfiguration {
-    fn txdelay(&self) -> u8;
-    fn p(&self) -> u8;
-    fn slottime(&self) -> u8;
-    fn txtail(&self) -> u8;
-    fn fullduplex(&self) -> u8;
-    fn sethardware(&self) -> u8;
-}
+// trait SettingsConfiguration {
+//     fn txdelay(&self) -> u8;
+//     fn p(&self) -> u8;
+//     fn slottime(&self) -> u8;
+//     fn txtail(&self) -> u8;
+//     fn fullduplex(&self) -> u8;
+//     fn sethardware(&self) -> u8;
+// }
 
-impl SettingsConfiguration for SettingsArray {
-    fn txdelay(&self) -> u8 {self.settings[0]}
-    fn p(&self) -> u8 {self.settings[1]}
-    fn slottime(&self) -> u8 {self.settings[2]}
-    fn txtail(&self) -> u8 {self.settings[3]}
-    fn fullduplex(&self) -> u8 {self.settings[4]}
-    fn sethardware(&self) -> u8 {self.settings[5]}
-}
+// impl SettingsConfiguration for SettingsArray {
+//     fn txdelay(&self) -> u8 {self.settings[0]}
+//     fn p(&self) -> u8 {self.settings[1]}
+//     fn slottime(&self) -> u8 {self.settings[2]}
+//     fn txtail(&self) -> u8 {self.settings[3]}
+//     fn fullduplex(&self) -> u8 {self.settings[4]}
+//     fn sethardware(&self) -> u8 {self.settings[5]}
+// }
 
 pub struct TncFrame {
     command: u8,
@@ -161,8 +161,5 @@ pub fn change_option(_type: u8, _data: u8) -> Option<TncFrame> {
         CMD_SETHARDWARE => (),
         CMD_RETURN | _ => return None, // do nothing
     }
-    unsafe {
-        SETTINGS_ARRAY.settings[(_type-1) as usize] = _data;
-        Some(TncFrame { command: _type, data: Some(SETTINGS_ARRAY.settings[(_type-1) as usize]) })
-    }
+    Some(TncFrame { command: _type, data: Some(_data)})
 }
