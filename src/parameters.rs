@@ -103,4 +103,4 @@ pub const UI_FRAME_MAX: usize  = 1 + APRS_DST_ADDR.len() + APRS_SRC_ADDR.len() +
 
 // TNC constants
 
-pub const MAX_KISS_FRAME_SIZE: usize = 1024; // bytes
+pub const MAX_KISS_FRAME_SIZE: usize = 128; // bytes

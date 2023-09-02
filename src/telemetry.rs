@@ -5,8 +5,8 @@ use crate::parameters::*;
 use crate::easypacket::{generate_packet, generate_packet_no_fec};
 
 use reed_solomon::{Encoder, Decoder};
-use zerocopy::{AsBytes, FromBytes, FromZeroes};
-use serde::{Serialize, Deserialize};
+// use zerocopy::{AsBytes, FromBytes, FromZeroes};
+// use serde::{Serialize, Deserialize};
 
 
 #[rustc_do_not_const_check] // TODO: extremely bad idea
@@ -28,7 +28,7 @@ const fn make_packet_skeleton_nofec(_type: bool) -> [u8; BARE_MESSAGE_LENGTH_BYT
 
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone)]
 pub enum BlockData {
     DynData(Option<[u8; 4]>),
     StaticData(Option<&'static [u8]>),
@@ -59,7 +59,7 @@ impl BlockData {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, Serialize)]
+#[derive(Debug, Copy, Clone)]
 pub struct Block {
     pub label: u8,
     pub data: BlockData,
@@ -89,19 +89,19 @@ impl Block {
 
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone)]
 pub struct BlockStackData {
     pub data_arr: [[u8; 4]; BLOCK_STACK_DATA_COUNT],
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, AsBytes, FromZeroes, FromBytes, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone)]
 pub struct PacketDecodedData {
     pub data_arr: [f32; BLOCK_STACK_DATA_COUNT],
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, Serialize)]
+#[derive(Debug, Copy, Clone)]
 pub struct BlockStack {
     blocks: [Block; BARE_MESSAGE_LENGTH_BLOCKS],
     // altitude_block: Block<ALTITUDE_SIZE>,
@@ -251,7 +251,7 @@ impl CoordinateAttributes for f32 {
     }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, AsBytes, FromZeroes, FromBytes, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone)]
 pub struct DecodedDataPacket {
     pub altitude: f32,
     pub voltage: f32,
