@@ -16,7 +16,7 @@ const TFESC: u8 = 0xDD; // 221
 //     }
 // }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct PacketDelimitingBuffer {
     data: [u8; MAX_KISS_FRAME_SIZE],
     current_len: usize,
@@ -98,15 +98,40 @@ const CMD_RETURN: u8 = 0xFF;
 //     fn sethardware(&self) -> u8 {self.settings[5]}
 // }
 
-pub struct TncFrame {
+pub struct TncFrame<T> {
     command: u8,
-    data: Option<u8>,
+    data: T,
 }
+
+pub type TncOptionFrame = TncFrame<Option<u8>>;
+pub type TncDataFrame = TncFrame<PacketDelimitingBuffer>;
+
+pub struct InvalidCommandError;
 
 fn delimit_packet(_packet: &[u8]) -> PacketDelimitingBuffer {
     let mut delimited_packet_buffer = PacketDelimitingBuffer::new();
     delimited_packet_buffer.add_data(_packet);
     delimited_packet_buffer
+}
+
+pub fn process_command(_type: u8, _data_arr: Option<&[u8]>) -> Result<TncOptionFrame, InvalidCommandError> {
+    if _data_arr.is_none() {
+        return Ok(TncOptionFrame {command: _type, data: None})
+    }
+    
+    let _data = _data_arr.unwrap();
+    
+    if _data.len() < 1 {
+        unsafe { core::intrinsics::unreachable(); }
+    }
+    match _type {
+        
+        CMD_TXDELAY | CMD_P | CMD_SLOTTIME | CMD_TXTAIL | CMD_FULLDUPLEX | CMD_SETHARDWARE => Ok(TncOptionFrame { command: _type, data: Some(_data[0])}),
+        CMD_RETURN => Ok(TncOptionFrame{command: CMD_RETURN, data: None}),
+        CMD_DATAFRAME => return Ok(TncOptionFrame{command: CMD_DATAFRAME, data: None}),
+        _ => return Err(InvalidCommandError),
+    
+    }
 }
 
 #[cfg(test)]
@@ -133,33 +158,33 @@ mod tests {
     }
 }
 
-pub fn return_frame(_type: u8, _data: Option<u8>) -> Option<TncFrame> {
-    match _type {
-        CMD_DATAFRAME => (),
-        CMD_TXDELAY => (),
-        CMD_P => (),
-        CMD_SLOTTIME => (),
-        CMD_TXTAIL => (),
-        CMD_FULLDUPLEX => (),
-        CMD_SETHARDWARE => (),
-        CMD_RETURN | _ => (), // do nothing
-    }
-    Some(TncFrame {
-        command: _type,
-        data: _data,
-    })
-}
+// pub fn return_frame(_type: u8, _data: Option<u8>) -> Option<TncFrame> {
+//     match _type {
+//         CMD_DATAFRAME => (),
+//         CMD_TXDELAY => (),
+//         CMD_P => (),
+//         CMD_SLOTTIME => (),
+//         CMD_TXTAIL => (),
+//         CMD_FULLDUPLEX => (),
+//         CMD_SETHARDWARE => (),
+//         CMD_RETURN | _ => (), // do nothing
+//     }
+//     Some(TncFrame {
+//         command: _type,
+//         data: _data,
+//     })
+// }
 
-pub fn change_option(_type: u8, _data: u8) -> Option<TncFrame> {
-    match _type {
-        CMD_DATAFRAME => return None,
-        CMD_TXDELAY => (),
-        CMD_P => (),
-        CMD_SLOTTIME => (),
-        CMD_TXTAIL => (),
-        CMD_FULLDUPLEX => (),
-        CMD_SETHARDWARE => (),
-        CMD_RETURN | _ => return None, // do nothing
-    }
-    Some(TncFrame { command: _type, data: Some(_data)})
-}
+// pub fn change_option(_type: u8, _data: u8) -> Option<TncFrame> {
+//     match _type {
+//         CMD_DATAFRAME => return None,
+//         CMD_TXDELAY => (),
+//         CMD_P => (),
+//         CMD_SLOTTIME => (),
+//         CMD_TXTAIL => (),
+//         CMD_FULLDUPLEX => (),
+//         CMD_SETHARDWARE => (),
+//         CMD_RETURN | _ => return None, // do nothing
+//     }
+//     Some(TncFrame { command: _type, data: Some(_data)})
+// }
