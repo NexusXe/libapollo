@@ -94,11 +94,8 @@ pub struct BlockStackData {
     pub data_arr: [[u8; 4]; BLOCK_STACK_DATA_COUNT],
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct PacketDecodedData {
-    pub data_arr: [f32; BLOCK_STACK_DATA_COUNT],
-}
+pub type PacketDecodedData = [f32; BLOCK_STACK_DATA_COUNT];
+
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -367,7 +364,11 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
 }
 
 pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDecodedData {
-    
+
+    if ((ALTITUDE_LOCATION_END - ALTITUDE_LOCATION_START) != 4) | ((VOLTAGE_LOCATION_END - VOLTAGE_LOCATION_START) != 4) | ((TEMPERATURE_LOCATION_END - TEMPERATURE_LOCATION_START) != 4) 
+    | ((LATITUDE_LOCATION_END - LATITUDE_LOCATION_START) != 4) | ((LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START) != 4) {
+        unreachable!();
+    }
 
     // TODO: this can be done with a for loop based on parameters
     let _altitude: f32 = f32::from_be_bytes(_packet[ALTITUDE_LOCATION_START..ALTITUDE_LOCATION_END].try_into().unwrap());
@@ -376,9 +377,7 @@ pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDec
     let _latitude: f32 = f32::from_be_bytes(_packet[LATITUDE_LOCATION_START..LATITUDE_LOCATION_END].try_into().unwrap());
     let _longitude: f32 = f32::from_be_bytes(_packet[LONGITUDE_LOCATION_START..LONGITUDE_LOCATION_END].try_into().unwrap());
 
-    PacketDecodedData {
-        data_arr: [_altitude, _voltage, _temperature, _latitude, _longitude],
-    }
+    [_altitude, _voltage, _temperature, _latitude, _longitude]
 }
 
 
