@@ -33,11 +33,6 @@ pub const F64_DATA_SIZE: usize = core::mem::size_of::<f64>();
 pub const F32_DATA_SIZE: usize = core::mem::size_of::<f32>();
 
 pub const BLOCK_LABEL_SIZE: usize = 1;
-pub const ALTITUDE_SIZE: usize = F32_DATA_SIZE as usize;
-pub const VOLTAGE_SIZE: usize = F32_DATA_SIZE as usize;
-pub const TEMPERATURE_SIZE: usize = F32_DATA_SIZE as usize;
-pub const LATITUDE_SIZE: usize = F32_DATA_SIZE as usize;
-pub const LONGITUDE_SIZE: usize = F32_DATA_SIZE as usize;
 
 // K is blocks in, M is blocks out. Also, only K blocks are needed to reconstruct the message.
 
@@ -49,31 +44,83 @@ pub const START_END_HEADER: u16 = 0x1BE4; // Start of message header, in binary 
 pub const START_HEADER_DATA: [u8; CALLSIGN.len() + 2] = [START_END_HEADER.to_le_bytes()[0], START_END_HEADER.to_le_bytes()[1], CALLSIGN[0], CALLSIGN[1], CALLSIGN[2], CALLSIGN[3], CALLSIGN[4], CALLSIGN[5]]; // Start of message header data
 pub const END_HEADER_DATA:   [u8; CALLSIGN.len() + 2] = [CALLSIGN[0], CALLSIGN[1], CALLSIGN[2], CALLSIGN[3], CALLSIGN[4], CALLSIGN[5], START_END_HEADER.to_le_bytes()[0], START_END_HEADER.to_le_bytes()[1]]; // End of message header data
 
-pub const START_HEADER_DATA_LEN: usize = START_HEADER_DATA.len();
-pub const END_HEADER_DATA_LEN: usize = END_HEADER_DATA.len();
 
-pub const PACKET_BEGINNING_OFFSET: usize = START_HEADER_DATA.len() + BLOCK_DELIMITER_SIZE;
+const PACKET_BEGINNING_OFFSET: usize = START_HEADER_DATA.len() + BLOCK_DELIMITER_SIZE;
 
-pub const ALTITUDE_LOCATION_START: usize = PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE; // for the sake of consistency
-pub const ALTITUDE_LOCATION_END: usize = ALTITUDE_LOCATION_START + ALTITUDE_SIZE;
+// pub const ALTITUDE_LOCATION_START: usize = PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE; // for the sake of consistency
+// pub const ALTITUDE_LOCATION_END: usize = ALTITUDE_LOCATION_START + ALTITUDE_SIZE;
 
-pub const VOLTAGE_LOCATION_START: usize = ALTITUDE_LOCATION_END + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE;
-pub const VOLTAGE_LOCATION_END: usize = VOLTAGE_LOCATION_START + VOLTAGE_SIZE;
+// pub const VOLTAGE_LOCATION_START: usize = ALTITUDE_LOCATION_END + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE;
+// pub const VOLTAGE_LOCATION_END: usize = VOLTAGE_LOCATION_START + VOLTAGE_SIZE;
 
-pub const TEMPERATURE_LOCATION_START: usize = VOLTAGE_LOCATION_END + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE;
-pub const TEMPERATURE_LOCATION_END: usize = TEMPERATURE_LOCATION_START + TEMPERATURE_SIZE;
+// pub const TEMPERATURE_LOCATION_START: usize = VOLTAGE_LOCATION_END + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE;
+// pub const TEMPERATURE_LOCATION_END: usize = TEMPERATURE_LOCATION_START + TEMPERATURE_SIZE;
 
-pub const LATITUDE_LOCATION_START: usize = TEMPERATURE_LOCATION_END + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE;
-pub const LATITUDE_LOCATION_END: usize = LATITUDE_LOCATION_START + LATITUDE_SIZE;
+// pub const LATITUDE_LOCATION_START: usize = TEMPERATURE_LOCATION_END + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE;
+// pub const LATITUDE_LOCATION_END: usize = LATITUDE_LOCATION_START + LATITUDE_SIZE;
 
-pub const LONGITUDE_LOCATION_START: usize = LATITUDE_LOCATION_END + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE;
-pub const LONGITUDE_LOCATION_END: usize = LONGITUDE_LOCATION_START + LONGITUDE_SIZE;
+// pub const LONGITUDE_LOCATION_START: usize = LATITUDE_LOCATION_END + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE;
+// pub const LONGITUDE_LOCATION_END: usize = LONGITUDE_LOCATION_START + LONGITUDE_SIZE;
 
-const _: () = assert!(ALTITUDE_LOCATION_END - ALTITUDE_LOCATION_START == ALTITUDE_SIZE, "location incongruency");
-const _: () = assert!(VOLTAGE_LOCATION_END - VOLTAGE_LOCATION_START == VOLTAGE_SIZE, "location incongruency");
-const _: () = assert!(TEMPERATURE_LOCATION_END - TEMPERATURE_LOCATION_START == TEMPERATURE_SIZE, "locationn incongruency");
-const _: () = assert!(LATITUDE_LOCATION_END - LATITUDE_LOCATION_START == LATITUDE_SIZE, "location incongruency");
-const _: () = assert!(LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START == LONGITUDE_SIZE, "location incongruency");
+type BlockConfig = usize;
+type BlockConfigStack = [BlockConfig; BLOCK_STACK_DATA_COUNT];
+
+#[derive(Clone, Copy)]
+pub struct BlockIdent {
+    pub size: BlockConfig,
+    pub beginning_location: usize,
+    pub end_location: usize,
+}
+
+pub type BlockIdentStack = [BlockIdent; BLOCK_STACK_DATA_COUNT];
+
+
+pub const fn calculate_block_starts_ends(blockconfigs: BlockConfigStack) -> BlockIdentStack {
+
+    let mut _blockidentstack: BlockIdentStack = [BlockIdent { size: 4, beginning_location: 0, end_location: 0 }; BLOCK_STACK_DATA_COUNT];
+
+    _blockidentstack[0] = BlockIdent {size: blockconfigs[0], beginning_location: PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE, end_location: PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE + blockconfigs[0]};
+    let mut _block_in_hand: usize = 1;
+
+    while _block_in_hand < BLOCK_STACK_DATA_COUNT {
+        _blockidentstack[_block_in_hand] = BlockIdent { size: blockconfigs[_block_in_hand], beginning_location: _blockidentstack[_block_in_hand - 1].end_location + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE, end_location: _blockidentstack[_block_in_hand - 1].end_location + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE + blockconfigs[_block_in_hand] };
+        _block_in_hand += 1;
+    }
+    _blockidentstack
+}
+
+const ALTITUDE_SIZE: usize = F32_DATA_SIZE as usize;
+const VOLTAGE_SIZE: usize = F32_DATA_SIZE as usize;
+const TEMPERATURE_SIZE: usize = F32_DATA_SIZE as usize;
+const LATITUDE_SIZE: usize = F32_DATA_SIZE as usize;
+const LONGITUDE_SIZE: usize = F32_DATA_SIZE as usize;
+
+const BLOCK_CONFIG_STACK: BlockConfigStack = [
+    ALTITUDE_SIZE,
+    VOLTAGE_SIZE,
+    TEMPERATURE_SIZE,
+    LATITUDE_SIZE,
+    LONGITUDE_SIZE,
+];
+
+pub const BLOCK_IDENT_STACK: BlockIdentStack = calculate_block_starts_ends(BLOCK_CONFIG_STACK);
+
+// const _: () = assert!(BLOCK_IDENT_STACK[0].beginning_location == ALTITUDE_LOCATION_START);
+// const _: () = assert!(BLOCK_IDENT_STACK[0].end_location == ALTITUDE_LOCATION_END);
+
+// const _: () = assert!(BLOCK_IDENT_STACK[1].beginning_location == VOLTAGE_LOCATION_START);
+// const _: () = assert!(BLOCK_IDENT_STACK[1].end_location == VOLTAGE_LOCATION_END);
+
+
+// const _: () = assert!(BLOCK_IDENT_STACK[2].beginning_location == TEMPERATURE_LOCATION_START);
+// const _: () = assert!(BLOCK_IDENT_STACK[2].end_location == TEMPERATURE_LOCATION_END);
+
+// const _: () = assert!(BLOCK_IDENT_STACK[3].beginning_location == LATITUDE_LOCATION_START);
+// const _: () = assert!(BLOCK_IDENT_STACK[3].end_location == LATITUDE_LOCATION_END);
+
+// const _: () = assert!(BLOCK_IDENT_STACK[4].beginning_location == LONGITUDE_LOCATION_START);
+// const _: () = assert!(BLOCK_IDENT_STACK[4].end_location == LONGITUDE_LOCATION_END);
+
 
 // APRS related constants
 const APRS_SOFTWARE_VERSION_TXT: &str = "0.0.2";

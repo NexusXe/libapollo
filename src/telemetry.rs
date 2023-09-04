@@ -43,10 +43,10 @@ impl BlockData {
         }
     }
 
-    pub const fn which_type(&self) -> Option<bool> {
+    pub const fn which_type(&self) -> bool {
         match self {
-            BlockData::DynData(_) => Some(true),
-            BlockData::StaticData(_) => Some(false),
+            BlockData::DynData(_) => true,
+            BlockData::StaticData(_) => false,
         }
     }
 
@@ -363,21 +363,21 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
 
 }
 
+
 pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDecodedData {
-
-    if ((ALTITUDE_LOCATION_END - ALTITUDE_LOCATION_START) != 4) | ((VOLTAGE_LOCATION_END - VOLTAGE_LOCATION_START) != 4) | ((TEMPERATURE_LOCATION_END - TEMPERATURE_LOCATION_START) != 4) 
-    | ((LATITUDE_LOCATION_END - LATITUDE_LOCATION_START) != 4) | ((LONGITUDE_LOCATION_END - LONGITUDE_LOCATION_START) != 4) {
-        unreachable!();
+    let mut packet_decoded_data: PacketDecodedData = [0.0f32; BLOCK_STACK_DATA_COUNT];
+    for i in 0..BLOCK_IDENT_STACK.len() {
+        packet_decoded_data[i] = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[i].beginning_location..BLOCK_IDENT_STACK[i].end_location].try_into().unwrap());
     }
-
+ 
     // TODO: this can be done with a for loop based on parameters
-    let _altitude: f32 = f32::from_be_bytes(_packet[ALTITUDE_LOCATION_START..ALTITUDE_LOCATION_END].try_into().unwrap());
-    let _voltage: f32 = f32::from_be_bytes(_packet[VOLTAGE_LOCATION_START..VOLTAGE_LOCATION_END].try_into().unwrap());
-    let _temperature: f32 = f32::from_be_bytes(_packet[TEMPERATURE_LOCATION_START..TEMPERATURE_LOCATION_END].try_into().unwrap());
-    let _latitude: f32 = f32::from_be_bytes(_packet[LATITUDE_LOCATION_START..LATITUDE_LOCATION_END].try_into().unwrap());
-    let _longitude: f32 = f32::from_be_bytes(_packet[LONGITUDE_LOCATION_START..LONGITUDE_LOCATION_END].try_into().unwrap());
+    // let _altitude: f32 = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[0].beginning_location..BLOCK_IDENT_STACK[0].end_location].try_into().unwrap());
+    // let _voltage: f32 = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[1].beginning_location..BLOCK_IDENT_STACK[1].end_location].try_into().unwrap());
+    // let _temperature: f32 = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[2].beginning_location..BLOCK_IDENT_STACK[2].end_location].try_into().unwrap());
+    // let _latitude: f32 = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[3].beginning_location..BLOCK_IDENT_STACK[3].end_location].try_into().unwrap());
+    // let _longitude: f32 = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[4].beginning_location..BLOCK_IDENT_STACK[4].end_location].try_into().unwrap());
 
-    [_altitude, _voltage, _temperature, _latitude, _longitude]
+    packet_decoded_data
 }
 
 
