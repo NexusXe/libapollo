@@ -58,7 +58,7 @@ impl TncFrameBuffer {
         framebuffer
     }
 
-    pub fn delimit_add_byte(&mut self, _byte: u8) {
+    pub fn escaping_add_byte(&mut self, _byte: u8) {
         match _byte {
             FEND => self.raw_add_bytes(&[FESC, TFEND]),
             FESC => self.raw_add_bytes(&[FESC, TFESC]),
@@ -67,39 +67,39 @@ impl TncFrameBuffer {
         }
     }
 
-    pub fn delimit_add_bytes(&mut self, _bytes: &[u8]) {
+    pub fn escaping_add_bytes(&mut self, _bytes: &[u8]) {
         for _byte in _bytes {
-            self.delimit_add_byte(*_byte);
+            self.escaping_add_byte(*_byte);
         }
     }
 
-    pub fn delimit_add_slices(&mut self, _slices: &[&[u8]]) {
+    pub fn escaping_add_slices(&mut self, _slices: &[&[u8]]) {
         for _slice in _slices {
-            self.delimit_add_bytes(*_slice);
+            self.escaping_add_bytes(*_slice);
         }
     }
 
-    pub fn delimit_new(_data: &[u8]) -> Self {
+    pub fn escaping_new(_data: &[u8]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
-        framebuffer.delimit_add_bytes(_data);
+        framebuffer.escaping_add_bytes(_data);
         framebuffer
     }
 
-    pub fn delimit_new_from_slices(_slices: &[&[u8]]) -> Self {
+    pub fn escaping_new_from_slices(_slices: &[&[u8]]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
         for _slice in _slices {
-            framebuffer.delimit_add_bytes(*_slice);
+            framebuffer.escaping_add_bytes(*_slice);
         }
         framebuffer
     }
 
-    /// Delimits all bytes in buffer
-    pub fn delimit_all(&mut self) {
+    /// Escapes all bytes in buffer
+    pub fn escape_all(&mut self) {
         let dest_framebuffer = self.clone();
         // We don't need to zero the rest of the data field since it'll THEORETICALLY never be read
         self.current_len = 0usize;
         for i in 0..dest_framebuffer.current_len {
-            self.delimit_add_byte(dest_framebuffer.data[i]);
+            self.escaping_add_byte(dest_framebuffer.data[i]);
         }
     }
 
@@ -111,7 +111,7 @@ impl TncFrameBuffer {
         }
     }
 
-    /// Un-delimits all (potentially delmited) bytes in buffer
+    /// Un-escapes all (potentially delmited) bytes in buffer
     pub fn raw_all(&mut self) {
         let dest_framebuffer = self.clone();
         // We don't need to zero the rest of the data field since it'll THEORETICALLY never be read
@@ -128,6 +128,43 @@ impl TncFrameBuffer {
             i += 1;
         }
 
+    }
+    /// Checks if the current buffer is fully escaped.
+    pub fn is_escaped(&self) -> bool {
+        let mut position: usize = 0;
+        // const _: () = assert!(u8::MAX as usize >= MAX_KISS_FRAME_SIZE, "Iterator type with max value {} in TncFrameBuffer::is_escaped() is too small to handle buffer size of {}", _iterator::MAX, MAX_KISS_FRAME_SIZE);
+        while position < self.current_len {
+            if self.data[position] == FESC {
+                match self.data[position + 1] {
+                    TFESC | TFEND => (),
+                    _ => return false,
+                }
+            } else if ((self.data[position] == FESC) || (self.data[position] == FEND)) && (self.data[position] != (self.current_len - 1) as u8) {
+                return false;
+            }
+            position += 1;
+        }
+        true
+    }
+}
+
+
+impl From<(&[u8], bool)> for TncFrameBuffer {
+    fn from(starting_tuple: (&[u8], bool)) -> Self {
+        let _data = starting_tuple.0;
+        let do_escape = starting_tuple.1;
+        if do_escape {
+            TncFrameBuffer::escaping_new(_data)
+        } else {
+            TncFrameBuffer::raw_new(_data)
+        }
+    }
+}
+
+impl From<&[u8]> for TncFrameBuffer {
+    /// By default, this cast does not escape. Use `TncFrameBuffer::from((&[u8], true))` to escape during the cast.
+    fn from(_data: &[u8]) -> Self {
+        Self::from((_data, false))
     }
 }
 
@@ -147,7 +184,7 @@ pub mod tnc_frame_encoder {
     /// TODO: throw error when trying to use data longer than one byte with option frames
     /// TODO: throw error when supplied no data
     pub fn make_tnc_frame(_data: &[&[u8]]) -> TncFrameBuffer {
-        TncFrameBuffer::delimit_new_from_slices(_data)
+        TncFrameBuffer::escaping_new_from_slices(_data)
     }
 
     #[cfg(test)]
@@ -156,25 +193,34 @@ pub mod tnc_frame_encoder {
         use super::*;
 
         const _DATA: &[u8] = &[11u8, FEND, 0u8, FESC, FESC, FESC, 124u8, 11u8];
-        const _EXPECTED_DELIMITED_DATA: [u8; 12] = [11u8, FESC, TFEND, 0u8, FESC, TFESC, FESC, TFESC, FESC, TFESC, 124u8, 11u8];
+        const _EXPECTED_ESCAPED_DATA: [u8; 12] = [11u8, FESC, TFEND, 0u8, FESC, TFESC, FESC, TFESC, FESC, TFESC, 124u8, 11u8];
 
 
         #[test]
         pub fn test_tnc_encode() {
             const _LABEL: &[u8] = &[CMD_DATAFRAME];
             let data_frame = make_tnc_frame(&[_LABEL, _DATA]);
-            assert_eq!(data_frame.data[_LABEL.len()..data_frame.current_len], _EXPECTED_DELIMITED_DATA);
+            assert_eq!(data_frame.data[_LABEL.len()..data_frame.current_len], _EXPECTED_ESCAPED_DATA);
         }
 
         #[test]
-        pub fn test_tnc_delimit() {
+        pub fn test_tnc_escape() {
             let data_frame = TncFrameBuffer::raw_new(_DATA);
             let mut cycled_data_frame = data_frame.clone();
 
-            cycled_data_frame.delimit_all();
+            cycled_data_frame.escape_all();
             cycled_data_frame.raw_all();
 
             assert_eq!(data_frame.data[0..data_frame.current_len], cycled_data_frame.data[0..cycled_data_frame.current_len]);
+        }
+
+        #[test]
+        pub fn test_tnc_is_escaped() {
+            let escaped_buffer: TncFrameBuffer = TncFrameBuffer::raw_new(&_EXPECTED_ESCAPED_DATA);
+            let unescaped_buffer: TncFrameBuffer = TncFrameBuffer::raw_new(&[0x11, FEND, 0x00, FEND, 0x41]);
+            assert!(escaped_buffer.is_escaped());
+            assert!(!unescaped_buffer.is_escaped());
+
         }
     }
 }
@@ -221,7 +267,7 @@ pub mod tnc_frame_decoder {
     pub fn decode_tnc_frame(_frame: &[u8]) -> Result<(u8, TncFrameBuffer), InvalidTncCommandError> {
         if _frame.len() == 0 {return Err(InvalidTncCommandError)};
         let mut _tncframe = TncFrameBuffer::raw_new( &_frame[..1] ); // Man
-        _tncframe.delimit_all();
+        _tncframe.escape_all();
         Ok((_frame[0], _tncframe))
     }
 }
