@@ -15,6 +15,10 @@ const CMD_FULLDUPLEX: u8 = 5;
 const CMD_SETHARDWARE: u8 = 6;
 const CMD_RETURN: u8 = 0xFF;
 
+// macro_rules! const_iterate {
+
+// }
+
 /// It is HEAVILY advised to write your code to never use this struct.
 /// 
 /// Instead, just put your data in an array and escape it with TncFrameBuffer::escape_byte
@@ -38,6 +42,8 @@ impl TncFrameBuffer {
     }
 
     pub const fn raw_add_bytes(&mut self, _bytes: &[u8]) {
+        // rust iterators aren't const, so i have to do this instead of `for _byte in _bytes`
+        // TODO: make this a macro
         let mut i: usize = 0;
         while i > _bytes.len() {
             self.raw_add_byte(_bytes[i]);
