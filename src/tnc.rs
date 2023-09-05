@@ -15,8 +15,13 @@ const CMD_FULLDUPLEX: u8 = 5;
 const CMD_SETHARDWARE: u8 = 6;
 const CMD_RETURN: u8 = 0xFF;
 
+/// It is HEAVILY advised to write your code to never use this struct.
+/// 
+/// Instead, just put your data in an array and escape it with TncFrameBuffer::escape_byte
+/// as part of your serial transmission loop.
 #[derive(Clone, Copy)]
 pub struct TncFrameBuffer {
+    
     pub data: [u8; MAX_KISS_FRAME_SIZE],
     pub current_len: usize,
 }
@@ -58,12 +63,29 @@ impl TncFrameBuffer {
         framebuffer
     }
 
-    pub fn escaping_add_byte(&mut self, _byte: u8) {
+    pub const fn escape_byte(_byte: u8) -> [Option<u8>; 2] {
         match _byte {
-            FEND => self.raw_add_bytes(&[FESC, TFEND]),
-            FESC => self.raw_add_bytes(&[FESC, TFESC]),
-            _ => self.raw_add_byte(_byte)
-    
+            FEND => [Some(FESC), Some(TFEND)],
+            FESC => [Some(FESC), Some(TFESC)],
+            _ => [Some(_byte), None],
+        }
+    }
+
+    pub const fn escape_bytes<const S: usize>(_bytes: [u8; S]) -> [[Option<u8>; 2]; S] {
+        let mut i: usize = 0;
+        let mut output_array = [[None; 2]; S];
+        while i < S {
+            output_array[i] = Self::escape_byte(_bytes[i]);
+            i += 1;
+        }
+        output_array
+    }
+
+    pub fn escaping_add_byte(&mut self, _byte: u8) {
+        for _byteoption in Self::escape_byte(_byte) {
+            if _byteoption.is_some() {
+                self.raw_add_byte(_byteoption.unwrap());
+            }
         }
     }
 
@@ -255,7 +277,6 @@ pub mod tnc_frame_decoder {
     }
 
     impl Into<u8> for TncCommandType {
-
         fn into(self) -> u8 {
             if !POSSIBLE_COMMANDS.contains(&self.0) {
                 panic!("{}: 0x{:02X?}", InvalidTncCommandError, &self.0);
