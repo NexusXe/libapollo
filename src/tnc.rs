@@ -116,16 +116,16 @@ impl TncFrameBuffer {
         let dest_framebuffer = self.clone();
         // We don't need to zero the rest of the data field since it'll THEORETICALLY never be read
         self.current_len = 0usize;
-        
-        for mut i in 0..dest_framebuffer.current_len {
+        let mut i = 0;
+        while i < dest_framebuffer.current_len {
             match dest_framebuffer.data[i] {
                 FESC => {
                     i += 1;
                     self.raw_add_byte(Self::convert_escaped_byte(dest_framebuffer.data[i]))
                 },
-
                 _ => self.raw_add_byte(dest_framebuffer.data[i]),
             }
+            i += 1;
         }
 
     }
@@ -149,10 +149,38 @@ pub mod tnc_frame_encoder {
     pub fn make_tnc_frame(_data: &[&[u8]]) -> TncFrameBuffer {
         TncFrameBuffer::delimit_new_from_slices(_data)
     }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::tnc::*;
+        use super::*;
+
+        const _DATA: &[u8] = &[11u8, FEND, 0u8, FESC, FESC, FESC, 124u8, 11u8];
+        const _EXPECTED_DELIMITED_DATA: [u8; 12] = [11u8, FESC, TFEND, 0u8, FESC, TFESC, FESC, TFESC, FESC, TFESC, 124u8, 11u8];
+
+
+        #[test]
+        pub fn test_tnc_encode() {
+            const _LABEL: &[u8] = &[CMD_DATAFRAME];
+            let data_frame = make_tnc_frame(&[_LABEL, _DATA]);
+            assert_eq!(data_frame.data[_LABEL.len()..data_frame.current_len], _EXPECTED_DELIMITED_DATA);
+        }
+
+        #[test]
+        pub fn test_tnc_delimit() {
+            let data_frame = TncFrameBuffer::raw_new(_DATA);
+            let mut cycled_data_frame = data_frame.clone();
+
+            cycled_data_frame.delimit_all();
+            cycled_data_frame.raw_all();
+
+            assert_eq!(data_frame.data[0..data_frame.current_len], cycled_data_frame.data[0..cycled_data_frame.current_len]);
+        }
+    }
 }
 
 pub mod tnc_frame_decoder {
-    use core::fmt;
+    use core::{fmt, panic};
     use super::{CMD_DATAFRAME, CMD_TXDELAY, CMD_P, CMD_SLOTTIME, CMD_TXTAIL, CMD_FULLDUPLEX, CMD_SETHARDWARE, CMD_RETURN};
     use super::TncFrameBuffer;
 
@@ -172,14 +200,20 @@ pub mod tnc_frame_decoder {
     impl From<u8> for TncCommandType {
         fn from(num: u8) -> Self {
             assert!(POSSIBLE_COMMANDS.contains(&num));
-            Self(num)
+            if !POSSIBLE_COMMANDS.contains(&num) {
+                panic!("{}: 0x{:02X?}", InvalidTncCommandError, &num);
+            } else {
+                Self(num)
+            }
         }
     }
 
     impl Into<u8> for TncCommandType {
 
         fn into(self) -> u8 {
-            assert!(POSSIBLE_COMMANDS.contains(&self.0));
+            if !POSSIBLE_COMMANDS.contains(&self.0) {
+                panic!("{}: 0x{:02X?}", InvalidTncCommandError, &self.0);
+            }
             self.0
         }
     }

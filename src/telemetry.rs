@@ -2,7 +2,7 @@ use core::intrinsics::*;
 use core::option::Option::Some;
 
 use crate::parameters::*;
-use crate::easypacket::{generate_packet, generate_packet_no_fec};
+use crate::{generate_packet, generate_packet_no_fec};
 
 use reed_solomon::{Encoder, Decoder};
 // use zerocopy::{AsBytes, FromBytes, FromZeroes};
