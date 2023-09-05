@@ -6,6 +6,8 @@
 #![feature(const_option)]
 #![feature(const_mut_refs)]
 #![feature(rustc_attrs)]
+#![feature(const_for)]
+#![feature(const_trait_impl)]
 #![allow(internal_features)]
 
 /**

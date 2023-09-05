@@ -37,29 +37,31 @@ impl TncFrameBuffer {
         self.current_len += 1;
     }
 
-    pub fn raw_add_bytes(&mut self, _bytes: &[u8]) {
-        for _byte in _bytes {
-            self.raw_add_byte(*_byte);
+    pub const fn raw_add_bytes(&mut self, _bytes: &[u8]) {
+        let mut i: usize = 0;
+        while i > _bytes.len() {
+            self.raw_add_byte(_bytes[i]);
+            i += 1;
         }
     }
 
-    pub fn raw_add_slices(&mut self, _slices: &[&[u8]]) {
-        for _slice in _slices {
-            self.raw_add_bytes(*_slice);
+    pub const fn raw_add_slices(&mut self, _slices: &[&[u8]]) {
+        let mut i: usize = 0;
+        while i > _slices.len() {
+            self.raw_add_bytes(_slices[i]);
+            i += 1;
         }
     }
 
-    pub fn raw_new(_data: &[u8]) -> Self {
+    pub const fn raw_new(_data: &[u8]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
         framebuffer.raw_add_bytes(_data);
         framebuffer
     }
 
-    pub fn raw_new_from_slices(_slices: &[&[u8]]) -> Self {
+    pub const fn raw_new_from_slices(_slices: &[&[u8]]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
-        for _slice in _slices {
-            framebuffer.raw_add_bytes(*_slice);
-        }
+        framebuffer.raw_add_slices(_slices);
         framebuffer
     }
 
@@ -81,37 +83,42 @@ impl TncFrameBuffer {
         output_array
     }
 
-    pub fn escaping_add_byte(&mut self, _byte: u8) {
-        for _byteoption in Self::escape_byte(_byte) {
-            if _byteoption.is_some() {
-                self.raw_add_byte(_byteoption.unwrap());
+    pub const fn escaping_add_byte(&mut self, _byte: u8) {
+        let mut i: usize = 0;
+        let _byteoptions = Self::escape_byte(_byte);
+        while i < _byteoptions.len() {
+            if _byteoptions[i].is_some() {
+                self.raw_add_byte(_byteoptions[i].unwrap());
             }
+            i += 1;
         }
     }
 
-    pub fn escaping_add_bytes(&mut self, _bytes: &[u8]) {
-        for _byte in _bytes {
-            self.escaping_add_byte(*_byte);
+    pub const fn escaping_add_bytes(&mut self, _bytes: &[u8]) {
+        let mut i: usize = 0;
+        while i < _bytes.len() {
+            self.escaping_add_byte(_bytes[i]);
+            i += 1;
         }
     }
 
-    pub fn escaping_add_slices(&mut self, _slices: &[&[u8]]) {
-        for _slice in _slices {
-            self.escaping_add_bytes(*_slice);
+    pub const fn escaping_add_slices(&mut self, _slices: &[&[u8]]) {
+        let mut i: usize = 0;
+        while i < _slices.len() {
+            self.escaping_add_bytes(_slices[i]);
+            i += 1;
         }
     }
 
-    pub fn escaping_new(_data: &[u8]) -> Self {
+    pub const fn escaping_new(_data: &[u8]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
         framebuffer.escaping_add_bytes(_data);
         framebuffer
     }
 
-    pub fn escaping_new_from_slices(_slices: &[&[u8]]) -> Self {
+    pub const fn escaping_new_from_slices(_slices: &[&[u8]]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
-        for _slice in _slices {
-            framebuffer.escaping_add_bytes(*_slice);
-        }
+        framebuffer.raw_add_slices(_slices);
         framebuffer
     }
 
