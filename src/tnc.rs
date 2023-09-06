@@ -41,39 +41,29 @@ impl TncFrameBuffer {
         self.current_len += 1;
     }
 
-    pub const fn raw_add_bytes(&mut self, _bytes: &[u8]) {
-        // rust iterators aren't const, so i have to do this instead of `for _byte in _bytes`
-        // TODO: make this a macro
-        let mut i: usize = 0;
-        while i < _bytes.len() {
-            self.raw_add_byte(_bytes[i]);
-            i += 1;
+    pub fn raw_add_bytes(&mut self, _bytes: &[u8]) {
+        for _byte in _bytes {
+            self.raw_add_byte(*_byte);
         }
     }
 
-    pub const fn raw_add_slices(&mut self, _slices: &[&[u8]]) {
-        let mut i: usize = 0;
-        while i < _slices.len() {
-            self.raw_add_bytes(_slices[i]);
-            i += 1;
+    pub fn raw_add_slices(&mut self, _slices: &[&[u8]]) {
+        for _slice in _slices {
+            self.raw_add_bytes(*_slice);
         }
     }
 
-    pub const fn raw_new_from_byte(_data: u8) -> Self {
-        let mut framebuffer = TncFrameBuffer::empty_new();
-        framebuffer.raw_add_byte(_data);
-        framebuffer
-    }
-
-    pub const fn raw_new_from_bytes(_data: &[u8]) -> Self {
+    pub fn raw_new(_data: &[u8]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
         framebuffer.raw_add_bytes(_data);
         framebuffer
     }
 
-    pub const fn raw_new_from_slices(_slices: &[&[u8]]) -> Self {
+    pub fn raw_new_from_slices(_slices: &[&[u8]]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
-        framebuffer.raw_add_slices(_slices);
+        for _slice in _slices {
+            framebuffer.raw_add_bytes(*_slice);
+        }
         framebuffer
     }
 
@@ -95,48 +85,37 @@ impl TncFrameBuffer {
         output_array
     }
 
-    pub const fn escaping_add_byte(&mut self, _byte: u8) {
-        let mut i: usize = 0;
-        let _byteoptions = Self::escape_byte(_byte);
-        while i < _byteoptions.len() {
-            if _byteoptions[i].is_some() {
-                self.raw_add_byte(_byteoptions[i].unwrap());
+    pub fn escaping_add_byte(&mut self, _byte: u8) {
+        for _byteoption in Self::escape_byte(_byte) {
+            if _byteoption.is_some() {
+                self.raw_add_byte(_byteoption.unwrap());
             }
-            i += 1;
         }
     }
 
-    pub const fn escaping_add_bytes(&mut self, _bytes: &[u8]) {
-        let mut i: usize = 0;
-        while i < _bytes.len() {
-            self.escaping_add_byte(_bytes[i]);
-            i += 1;
+    pub fn escaping_add_bytes(&mut self, _bytes: &[u8]) {
+        for _byte in _bytes {
+            self.escaping_add_byte(*_byte);
         }
     }
 
-    pub const fn escaping_add_slices(&mut self, _slices: &[&[u8]]) {
-        let mut i: usize = 0;
-        while i < _slices.len() {
-            self.escaping_add_bytes(_slices[i]);
-            i += 1;
+    pub fn escaping_add_slices(&mut self, _slices: &[&[u8]]) {
+        for _slice in _slices {
+            self.escaping_add_bytes(*_slice);
         }
     }
 
-    pub const fn escaping_new_from_byte(_data: u8) -> Self {
-        let mut framebuffer = TncFrameBuffer::empty_new();
-        framebuffer.escaping_add_byte(_data);
-        framebuffer
-    }
-
-    pub const fn escaping_new_from_bytes(_data: &[u8]) -> Self {
+    pub fn escaping_new(_data: &[u8]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
         framebuffer.escaping_add_bytes(_data);
         framebuffer
     }
 
-    pub const fn escaping_new_from_slices(_slices: &[&[u8]]) -> Self {
-        let mut framebuffer: TncFrameBuffer = TncFrameBuffer::empty_new();
-        framebuffer.raw_add_slices(_slices);
+    pub fn escaping_new_from_slices(_slices: &[&[u8]]) -> Self {
+        let mut framebuffer = TncFrameBuffer::empty_new();
+        for _slice in _slices {
+            framebuffer.escaping_add_bytes(*_slice);
+        }
         framebuffer
     }
 
@@ -195,8 +174,8 @@ impl TncFrameBuffer {
     }
 
     // Creates a new TNC frame with delimiting and FESCs.
-    pub const fn new_full_tnc_frame(_label: u8, _data: &[u8]) -> Self {
-        let mut framebuffer = Self::raw_new_from_byte(FESC);
+    pub fn new_full_tnc_frame(_label: u8, _data: &[u8]) -> Self {
+        let mut framebuffer = Self::raw_new(&[FESC]);
 
         #[cfg(debug_assertions)]
         match _label {
@@ -218,10 +197,11 @@ impl From<(&[u8], bool)> for TncFrameBuffer {
     /// Pass in a data slice and a bool wherin `true` delimits the slice and `false` does not
     fn from(starting_tuple: (&[u8], bool)) -> Self {
         let _data = starting_tuple.0;
-        if starting_tuple.1 {
-            TncFrameBuffer::escaping_new_from_bytes(_data)
+        let do_escape = starting_tuple.1;
+        if do_escape {
+            TncFrameBuffer::escaping_new(_data)
         } else {
-            TncFrameBuffer::raw_new_from_bytes(_data)
+            TncFrameBuffer::raw_new(_data)
         }
     }
 }
@@ -271,7 +251,7 @@ pub mod tnc_frame_encoder {
 
         #[test]
         pub fn test_tnc_escape() {
-            let data_frame = TncFrameBuffer::raw_new_from_bytes(_DATA);
+            let data_frame = TncFrameBuffer::raw_new(_DATA);
             let mut cycled_data_frame = data_frame.clone();
 
             cycled_data_frame.escape_all();
@@ -282,8 +262,8 @@ pub mod tnc_frame_encoder {
 
         #[test]
         pub fn test_tnc_is_escaped() {
-            let escaped_buffer: TncFrameBuffer = TncFrameBuffer::raw_new_from_bytes(&_EXPECTED_ESCAPED_DATA);
-            let unescaped_buffer: TncFrameBuffer = TncFrameBuffer::raw_new_from_bytes(&[0x11, FEND, 0x00, FEND, 0x41]);
+            let escaped_buffer: TncFrameBuffer = TncFrameBuffer::raw_new(&_EXPECTED_ESCAPED_DATA);
+            let unescaped_buffer: TncFrameBuffer = TncFrameBuffer::raw_new(&[0x11, FEND, 0x00, FEND, 0x41]);
             assert!(escaped_buffer.is_escaped());
             assert!(!unescaped_buffer.is_escaped());
 
@@ -331,7 +311,7 @@ pub mod tnc_frame_decoder {
 
     pub fn decode_tnc_frame(_frame: &[u8]) -> Result<(u8, TncFrameBuffer), InvalidTncCommandError> {
         if _frame.len() == 0 {return Err(InvalidTncCommandError)};
-        let mut _tncframe = TncFrameBuffer::raw_new_from_bytes( &_frame[..1] ); // Man
+        let mut _tncframe = TncFrameBuffer::raw_new( &_frame[..1] ); // Man
         _tncframe.escape_all();
         Ok((_frame[0], _tncframe))
     }
