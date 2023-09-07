@@ -12,8 +12,9 @@ const BLOCK_LENGTH: usize = 1; // Packet length = 2^BLOCK_LENGTH bytes
 pub const BLOCK_DELIMITER: u16 = 0xF0F0; // Delimiter between blocks
 
 pub const START_END_HEADER: u16 = 0x1BE4;
-
 pub const MAX_KISS_FRAME_SIZE: usize = 128; // bytes
+
+pub const FIGURES_FRAME_SIZE: usize = 1024; // bytes
 
 // packet related constants
 
@@ -156,6 +157,9 @@ pub const APRS_FCS_SIZE: usize = 2;
 pub const UI_FRAME_MAX: usize  = 1 + APRS_DST_ADDR.len() + APRS_SRC_ADDR.len() + APRS_PATH.len() + 1 + 1 + APRS_INFO_FIELD_MAX + APRS_FCS_SIZE;
 
 
-// TNC constants
+// TNC parameters
 
 
+// Figures parameters
+
+pub type FiguresFrameArray = [u8; FIGURES_FRAME_SIZE];

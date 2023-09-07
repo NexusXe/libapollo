@@ -26,6 +26,7 @@ it will be an actual implementation of apolloTNC.
 
 pub mod parameters;
 pub mod telemetry;
+pub mod figures;
 
 use parameters::*;
 use crate::telemetry::{BlockStackData, construct_blocks, construct_packet, encode_packet};
