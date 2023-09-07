@@ -10,7 +10,7 @@ use reed_solomon::{Encoder, Decoder};
 
 
 #[rustc_do_not_const_check] // TODO: extremely bad idea
-const fn make_packet_skeleton(_type: bool) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
+const fn make_packet_skeleton(_type: bool) -> TotalMessage {
     let _blockstackdata = match _type {
         true => MAX_BLOCKSTACKDATA,
         false => MIN_BLOCKSTACKDATA,
@@ -18,7 +18,7 @@ const fn make_packet_skeleton(_type: bool) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
     generate_packet(_blockstackdata)
 }
 
-const fn make_packet_skeleton_nofec(_type: bool) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+const fn make_packet_skeleton_nofec(_type: bool) -> BareMessage {
     let _blockstackdata = match _type {
         true => MAX_BLOCKSTACKDATA,
         false => MIN_BLOCKSTACKDATA,
@@ -181,9 +181,9 @@ Constructs a packet of shape `[u8; BARE_MESSAGE_LENGTH_BYTES]` from a `BlockStac
 TODO: make fn const
 */
 #[rustc_do_not_const_check]
-pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+pub const fn construct_packet(_blockstack: BlockStack) -> BareMessage {
     // Constructs a packet from the given blocks. Each block begins with its 1 byte label attribute (if do_transmit_label is true), followed by the data. Blocks are delimited by BLOCK_DELIMITER.
-    let mut packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0; BARE_MESSAGE_LENGTH_BYTES];
+    let mut packet: BareMessage = [0u8; BARE_MESSAGE_LENGTH_BYTES];
     let mut packet_index: usize = 0;
 
     let mut i = 0;
@@ -209,7 +209,7 @@ pub const fn construct_packet(_blockstack: BlockStack) -> [u8; BARE_MESSAGE_LENG
     packet
 }
 
-pub fn encode_packet(&_bare_packet: &[u8; BARE_MESSAGE_LENGTH_BYTES]) -> [u8; TOTAL_MESSAGE_LENGTH_BYTES] {
+pub fn encode_packet(&_bare_packet: &BareMessage) -> TotalMessage {
     // Encodes the given packet using the reed_solomon crate. Returns the encoded packet.
     let enc = Encoder::new(FEC_EXTRA_BYTES);
     let _encoded_packet = enc.encode(&_bare_packet[..]);
@@ -257,7 +257,7 @@ pub struct DecodedDataPacket {
     pub longitude: f32
 }
 
-pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE_MESSAGE_LENGTH_BYTES]) {
+pub fn find_packet_similarities() -> (BareMessage, BareMessage) {
     // as a framework for decoding a packet, let's base everything off of
     // the same code that is generating the packets.
     // since the block sizes, labels, and positions are always constant, this gives us some help.
@@ -301,11 +301,11 @@ pub fn find_packet_similarities() -> ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE
 
 }
 
-pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures: &[u8]) -> [u8; BARE_MESSAGE_LENGTH_BYTES] { // TODO: this entire function needs to be completely refactored
+pub fn decode_packet(_packet: TotalMessage, _known_erasures: &[u8]) -> BareMessage { // TODO: this entire function needs to be completely refactored
 
     let mut _packet_fec: [u8; FEC_EXTRA_BYTES] = [0u8; FEC_EXTRA_BYTES];
-    let mut _packet_data: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
-    let mut _reconstructed_array: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
+    let mut _packet_data: BareMessage = [0u8; BARE_MESSAGE_LENGTH_BYTES];
+    let mut _reconstructed_array: BareMessage = [0u8; BARE_MESSAGE_LENGTH_BYTES];
     let mut _mask: u8;
 
     _packet_data.clone_from_slice(&_packet[..BARE_MESSAGE_LENGTH_BYTES]);
@@ -319,7 +319,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
     
     
 
-    let (_packet_bitmask, _bare_packet): ([u8; BARE_MESSAGE_LENGTH_BYTES], [u8; BARE_MESSAGE_LENGTH_BYTES]) = find_packet_similarities();
+    let (_packet_bitmask, _bare_packet): (BareMessage, BareMessage) = find_packet_similarities();
     
 
     for i in 0..BARE_MESSAGE_LENGTH_BYTES {
@@ -335,7 +335,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
 
 
 
-    let mut _packet_data_full: [u8; TOTAL_MESSAGE_LENGTH_BYTES] = [0u8; TOTAL_MESSAGE_LENGTH_BYTES];
+    let mut _packet_data_full: TotalMessage = [0u8; TOTAL_MESSAGE_LENGTH_BYTES];
     _packet_data_full[0..BARE_MESSAGE_LENGTH_BYTES].clone_from_slice(&_reconstructed_array);
     _packet_data_full[BARE_MESSAGE_LENGTH_BYTES..TOTAL_MESSAGE_LENGTH_BYTES].clone_from_slice(&_packet[BARE_MESSAGE_LENGTH_BYTES..TOTAL_MESSAGE_LENGTH_BYTES]);
 
@@ -348,7 +348,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
     let recovery_buffer = Decoder::new(FEC_EXTRA_BYTES).correct(&mut _packet_data_full, Some(_known_erasures)).unwrap();
     let recovered = recovery_buffer.data();
 
-    let mut recovered_packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
+    let mut recovered_packet: BareMessage = [0u8; BARE_MESSAGE_LENGTH_BYTES];
 
     for i in 0..recovered.len() {
     recovered_packet[i] = recovered[i];
@@ -364,7 +364,7 @@ pub fn decode_packet(_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES], _known_erasures:
 }
 
 
-pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDecodedData {
+pub fn values_from_packet(_packet: BareMessage) -> PacketDecodedData {
     let mut packet_decoded_data: PacketDecodedData = [0.0f32; BLOCK_STACK_DATA_COUNT];
     for i in 0..BLOCK_IDENT_STACK.len() {
         packet_decoded_data[i] = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[i].beginning_location..BLOCK_IDENT_STACK[i].end_location].try_into().unwrap());
@@ -381,9 +381,9 @@ pub fn values_from_packet(_packet: [u8; BARE_MESSAGE_LENGTH_BYTES]) -> PacketDec
 }
 
 
-pub fn decode_packet_test() -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+pub fn decode_packet_test() -> BareMessage {
 
-    let mut example_packet: [u8; TOTAL_MESSAGE_LENGTH_BYTES] = make_packet_skeleton(true);
+    let mut example_packet: TotalMessage = make_packet_skeleton(true);
     let dec = Decoder::new(FEC_EXTRA_BYTES);
 
     let known_erasures = [0];
@@ -391,7 +391,7 @@ pub fn decode_packet_test() -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
     let recovery_buffer = dec.correct(&mut example_packet, Some(&known_erasures)).unwrap();
     let recovered = recovery_buffer.data();
 
-    let mut recovered_packet: [u8; BARE_MESSAGE_LENGTH_BYTES] = [0u8; BARE_MESSAGE_LENGTH_BYTES];
+    let mut recovered_packet: BareMessage = [0u8; BARE_MESSAGE_LENGTH_BYTES];
 
     for i in 0..recovered.len() {
         recovered_packet[i] = recovered[i];

@@ -5,10 +5,18 @@ pub const CALLSIGN: &[u8] = b"KD9TFA"; // callsign of the balloon. MUST be an ev
 pub const FLOAT_PRECISION: usize = 8; // number of significant digits in the floating point data
 pub const BAUDRATE: u16 = 1;
 
+pub type BareMessage = [u8; BARE_MESSAGE_LENGTH_BYTES];
+pub type TotalMessage = [u8; TOTAL_MESSAGE_LENGTH_BYTES];
+
+const BLOCK_LENGTH: usize = 1; // Packet length = 2^BLOCK_LENGTH bytes
+pub const BLOCK_DELIMITER: u16 = 0xF0F0; // Delimiter between blocks
+
+pub const START_END_HEADER: u16 = 0x1BE4;
+
+pub const MAX_KISS_FRAME_SIZE: usize = 128; // bytes
+
 // packet related constants
 
-pub const BLOCK_LENGTH: usize = 1; // Packet length = 2^BLOCK_LENGTH bytes
-pub const BLOCK_DELIMITER: u16 = 0xF0F0; // Delimiter between blocks
 pub const BLOCK_DELIMITER_SIZE: usize = core::mem::size_of_val(&BLOCK_DELIMITER);
 pub const BARE_MESSAGE_LENGTH_BYTES: usize = 56; // Total message length, in bytes.
 pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES) >>  (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the FEC
@@ -20,8 +28,8 @@ pub const FEC_M: usize = FEC_K + FEC_EXTRA_PACKETS;
 
 const _: () = assert!(FEC_EXTRA_BYTES == TOTAL_MESSAGE_LENGTH_BYTES - BARE_MESSAGE_LENGTH_BYTES, "FEC_BYTES_math_err");
 
-pub const MESSAGE_PREFIX_BLOCKS: usize = 1; // CONSTANT Prefix blocks
-pub const MESSAGE_SUFFIX_BLOCKS: usize = 1; // CONSTANT Suffix blocks
+const MESSAGE_PREFIX_BLOCKS: usize = 1; // CONSTANT Prefix blocks
+const MESSAGE_SUFFIX_BLOCKS: usize = 1; // CONSTANT Suffix blocks
 
 const MESSAGE_NON_DATA_BLOCKS: usize = MESSAGE_PREFIX_BLOCKS + MESSAGE_SUFFIX_BLOCKS;
 
@@ -39,7 +47,7 @@ pub const BLOCK_LABEL_SIZE: usize = 1;
 pub const FEC_EXTRA_BYTES: usize = FEC_EXTRA_PACKETS * PACKET_LENGTH_BYTES; // Number of extra bytes to send for FEC
 pub const TOTAL_MESSAGE_LENGTH_BYTES: usize = BARE_MESSAGE_LENGTH_BYTES + FEC_EXTRA_BYTES; // Total message length, in bytes
 
-pub const START_END_HEADER: u16 = 0x1BE4; // Start of message header, in binary it is 00 01 10 11 11 10 01 00
+ // Start of message header, in binary it is 00 01 10 11 11 10 01 00
 
 pub const START_HEADER_DATA: [u8; CALLSIGN.len() + 2] = [START_END_HEADER.to_le_bytes()[0], START_END_HEADER.to_le_bytes()[1], CALLSIGN[0], CALLSIGN[1], CALLSIGN[2], CALLSIGN[3], CALLSIGN[4], CALLSIGN[5]]; // Start of message header data
 pub const END_HEADER_DATA:   [u8; CALLSIGN.len() + 2] = [CALLSIGN[0], CALLSIGN[1], CALLSIGN[2], CALLSIGN[3], CALLSIGN[4], CALLSIGN[5], START_END_HEADER.to_le_bytes()[0], START_END_HEADER.to_le_bytes()[1]]; // End of message header data
@@ -150,4 +158,4 @@ pub const UI_FRAME_MAX: usize  = 1 + APRS_DST_ADDR.len() + APRS_SRC_ADDR.len() +
 
 // TNC constants
 
-pub const MAX_KISS_FRAME_SIZE: usize = 128; // bytes
+
