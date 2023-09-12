@@ -8,6 +8,7 @@
 #![feature(rustc_attrs)]
 #![feature(const_for)]
 #![feature(const_trait_impl)]
+#![feature(const_fn_floating_point_arithmetic)]
 #![allow(internal_features)]
 
 /**
