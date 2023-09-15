@@ -1,13 +1,13 @@
-use crate::parameters::{FIGURES_FRAME_SIZE, FiguresFrameArray};
+// use crate::parameters::{FIGURES_FRAME_SIZE, FiguresFrameArray};
 
-pub struct FiguresFrame {
-    data: FiguresFrameArray,
-    pos: usize,
-}
+// pub struct FiguresFrame {
+//     data: FiguresFrameArray,
+//     pos: usize,
+// }
 
-pub fn make_figuresframe(data: &[u8]) -> FiguresFrame {
-    todo!();
-}
+// pub fn make_figuresframe(data: &[u8]) -> FiguresFrame {
+//     todo!();
+// }
 
 pub struct FloatMap<TI, TO> {
     slope32: f32,
