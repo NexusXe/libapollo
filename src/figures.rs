@@ -9,15 +9,33 @@ pub fn make_figuresframe(data: &[u8]) -> FiguresFrame {
     todo!();
 }
 
+pub struct FloatMap<TI, TO> {
+    slope32: f32,
+    slope64: f64,
+    input_range: [TI; 2],
+    output_range: [TO; 2]
+}
 
+const U24_OUTPUT_START: u32 = 0;
+const U24_OUTPUT_END: u32 = 2u32.pow(24) - 1u32;
+const LAT_INPUT_START: isize = -90;
+const LAT_INPUT_END: isize = 90;
+const LONG_INPUT_START: isize = -180;
+const LONG_INPUT_END: isize = 180;
 
-const OUTPUT_END: isize = 16777215;
-const OUTPUT_START: isize = 0;
-const INPUT_END: isize = 180;
-const INPUT_START: isize = -180;
+const LATITUDE_MAP: FloatMap<f32, u32> = FloatMap {
+    slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LAT_INPUT_END - LAT_INPUT_START) as f64) as f32,
+    slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LAT_INPUT_END - LAT_INPUT_START) as f64),
+    input_range: [LAT_INPUT_START as f32, LAT_INPUT_END as f32],
+    output_range: [U24_OUTPUT_START, U24_OUTPUT_END],
+};
 
-const SLOPE64: f64 = (OUTPUT_END - OUTPUT_START) as f64 / (INPUT_END - INPUT_START) as f64;
-const SLOPE32: f32 = SLOPE64 as f32;
+const LONGITUDE_MAP: FloatMap<f32, u32> = FloatMap {
+    slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LONG_INPUT_END - LONG_INPUT_START) as f64) as f32,
+    slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LONG_INPUT_END - LONG_INPUT_START) as f64),
+    input_range: [LONG_INPUT_START as f32, LONG_INPUT_END as f32],
+    output_range: [U24_OUTPUT_START, U24_OUTPUT_END],
+};
 
 pub fn main() {
     // let x = map_float(180.0);
@@ -55,28 +73,27 @@ const fn from_24_bit(n: U24Arr) -> u32 {
     output
 }
 
-const fn map_float(input: f32) -> U24Arr {
-    use core::f32;
-    // output = a + b * (c - d)
-    let output: u32 = (OUTPUT_START as f32 + SLOPE32 * (input - INPUT_START as f32)) as u32;
+const fn map_float(_floatmap: FloatMap<f32, u32>, input: f32) -> U24Arr {
+    let input_start = _floatmap.input_range[0];
+    //let input_end = _floatmap.input_range[1];
+    let output_start = _floatmap.output_range[0];
+    //let output_end = _floatmap.output_range[1];
+    let slope = _floatmap.slope32;
+
+    let output: u32 = (output_start as f32 + slope * (input - input_start as f32)) as u32;
     debug_assert!(output <= 2u32.pow(24));
     to_24_bit(output)
 }
 
 #[inline]
-const fn demap_float(input: U24Arr) -> f32 {
-    let x = from_24_bit(input);
-    let a = OUTPUT_START as f64;
-    let b = SLOPE64;
-    let d = INPUT_START as f64;
-    let c = (-a + (b * d) + x as f64)/b;
-    c as f32
+const fn demap_float(_floatmap: FloatMap<f32, u32>, input: U24Arr) -> f32 {
+    ((-(_floatmap.output_range[0] as f64) + (_floatmap.slope64 * (_floatmap.input_range[0] as f64)) + from_24_bit(input) as f64)/_floatmap.slope64) as f32
 }
 
-pub fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {
-    [map_float(lat), map_float(long)]
+pub const fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {
+    [map_float(LATITUDE_MAP, lat), map_float(LONGITUDE_MAP, long)]
 }
 
 pub const fn u48_arr_to_coords(data: U48Arr) -> (f32, f32) {
-    (demap_float(data[0]), demap_float(data[1]))
+    (demap_float(LATITUDE_MAP, data[0]), demap_float(LONGITUDE_MAP, data[1]))
 }
