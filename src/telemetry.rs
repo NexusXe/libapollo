@@ -37,14 +37,14 @@ pub enum BlockData {
 impl BlockData {
     #[rustc_do_not_const_check]
     pub const fn len(&self) -> usize {
-        match self {
+        match *self {
             BlockData::DynData(data) => data.as_ref().map(|d| d.len()).unwrap_or(0),
             BlockData::StaticData(data) => data.as_ref().map(|d| d.len()).unwrap_or(0),
         }
     }
 
     pub const fn which_type(&self) -> bool {
-        match self {
+        match *self {
             BlockData::DynData(_) => true,
             BlockData::StaticData(_) => false,
         }
@@ -247,18 +247,9 @@ impl CoordinateAttributes for f32 {
         unsafe{fmul_fast(fsub_fast(self.decimal_minutes(), self.minutes()), 60.0)}
     }
 }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct DecodedDataPacket {
-    pub altitude: f32,
-    pub voltage: f32,
-    pub temperature: f32,
-    pub latitude: f32,
-    pub longitude: f32
-}
 
 pub fn find_packet_similarities() -> (BareMessage, BareMessage) {
-    // as a framework for decoding a packet, let's base everything off of
+    // As a framework for decoding a packet, let's base everything off of
     // the same code that is generating the packets.
     // since the block sizes, labels, and positions are always constant, this gives us some help.
 
