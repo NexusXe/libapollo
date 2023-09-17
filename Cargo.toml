@@ -9,12 +9,10 @@ edition = "2021"
 
 [dependencies]
 reed-solomon = "0.2"
-array-concat = "0.5"
 crc16 = "0.4"
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 crc = { git = "https://github.com/mrhooray/crc-rs.git" }
-byte-strings = "0.3"
 
 [profile.release]
 codegen-units = 1
