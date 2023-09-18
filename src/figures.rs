@@ -93,14 +93,15 @@ pub const fn u48_arr_to_coords(data: U48Arr) -> (f32, f32) {
 //     packed_bools
 // }
 
-pub fn pack_bools_to_byte(bools: [bool; 8]) -> u8 { // this version is faster. lol
-    const BOOL_MASK: u8 = 0b00000001;
+pub const fn pack_bools_to_byte(bools: [bool; 8]) -> u8 {
     let mut i: usize = 0;
     let mut packed_bools: u8 = 0b00000000;
     while i < bools.len() {
-        if bools[i] {
-            packed_bools = packed_bools | BOOL_MASK << i;
-        }
+        // https://doc.rust-lang.org/reference/types/boolean.html
+        // A bool is a special u8, and `true` is just `0x01`.
+        // `bool as u8` has no overhead (it's a direct cast) so
+        // we can eliminate a branch by just shifting and `and`ing.
+        packed_bools = packed_bools | (bools[i] as u8) << i;
         i += 1;
     }
     packed_bools
