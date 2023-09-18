@@ -8,9 +8,7 @@ use reed_solomon::{Encoder, Decoder};
 // use zerocopy::{AsBytes, FromBytes, FromZeroes};
 // use serde::{Serialize, Deserialize};
 
-
-#[rustc_do_not_const_check] // TODO: extremely bad idea
-const fn make_packet_skeleton(_type: bool) -> TotalMessage {
+fn make_packet_skeleton(_type: bool) -> TotalMessage {
     let _blockstackdata = match _type {
         true => MAX_BLOCKSTACKDATA,
         false => MIN_BLOCKSTACKDATA,
@@ -35,8 +33,7 @@ pub enum BlockData {
 }
 
 impl BlockData {
-    #[rustc_do_not_const_check]
-    pub const fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match *self {
             BlockData::DynData(data) => data.as_ref().map(|d| d.len()).unwrap_or(0),
             BlockData::StaticData(data) => data.as_ref().map(|d| d.len()).unwrap_or(0),
@@ -67,7 +64,7 @@ pub struct Block {
 }
 
 impl Block {
-    pub const fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         // each block is its label, data, and then the delimiter
         (if likely(self.do_transmit_label) {BLOCK_LABEL_SIZE} else {0}) + self.data.len() + BLOCK_DELIMITER_SIZE
     }
@@ -126,38 +123,52 @@ const _MIN_BLOCKSTACK: BlockStack = construct_blocks(&MIN_BLOCKSTACKDATA);
 // const MIN_PACKET: [u8; BARE_MESSAGE_LENGTH_BYTES] = construct_packet(MIN_BLOCKSTACK);
 pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
 
+    let mut data_location: usize = 0;
+    const FIRST_BLOCK_LABEL: u8 = 128;
+
     const _START_HEADER_BLOCK: Block = Block {
-        label: 128,
+        label: FIRST_BLOCK_LABEL,
         data: BlockData::StaticData(Some(&START_HEADER_DATA)),
         do_transmit_label: false,
     };
-    let _altitude_block = Block {
-        label: 129,
-        data: BlockData::DynData(Some(_data.data_arr[0])),
+    data_location += 1;
+    let _packed_status_block = Block {
+        label: FIRST_BLOCK_LABEL + data_location as u8,
+        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
         do_transmit_label: true,
     };
+    data_location += 1;
+    let _altitude_block = Block {
+        label: FIRST_BLOCK_LABEL + data_location as u8,
+        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
+        do_transmit_label: true,
+    };
+    data_location += 1;
     let _voltage_block = Block {
-        label:  130,
-        data: BlockData::DynData(Some(_data.data_arr[1])),
+        label:  FIRST_BLOCK_LABEL + data_location as u8,
+        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
         do_transmit_label: true
     };
+    data_location += 1;
     let _temperature_block = Block {
-        label: 131,
-        data: BlockData::DynData(Some(_data.data_arr[2])),
+        label: FIRST_BLOCK_LABEL + data_location as u8,
+        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
         do_transmit_label: true
     };
+    data_location += 1;
     let _latitude_block = Block {
-        label: 132,
-        data: BlockData::DynData(Some(_data.data_arr[3])),
+        label: FIRST_BLOCK_LABEL + data_location as u8,
+        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
         do_transmit_label: true
     };
+    data_location += 1;
     let _longitude_block = Block {
-        label: 133,
-        data: BlockData::DynData(Some(_data.data_arr[4])),
+        label: FIRST_BLOCK_LABEL + data_location as u8,
+        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
         do_transmit_label: true
     };
     const _END_HEADER_BLOCK: Block = Block {
-        label: 134,
+        label: FIRST_BLOCK_LABEL + BLOCK_STACK_DATA_COUNT as u8,
         data: BlockData::StaticData(Some(&END_HEADER_DATA)),
         do_transmit_label: true
     };
@@ -165,6 +176,7 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
     BlockStack {
         blocks: [
             _START_HEADER_BLOCK,
+            _packed_status_block,
             _altitude_block,
             _voltage_block,
             _temperature_block,

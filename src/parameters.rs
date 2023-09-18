@@ -19,7 +19,7 @@ pub const FIGURES_FRAME_SIZE: usize = 1024; // bytes
 // packet related constants
 
 pub const BLOCK_DELIMITER_SIZE: usize = core::mem::size_of_val(&BLOCK_DELIMITER);
-pub const BARE_MESSAGE_LENGTH_BYTES: usize = 56; // Total message length, in bytes.
+pub const BARE_MESSAGE_LENGTH_BYTES: usize = 64; // Total message length, in bytes.
 pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES) >>  (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the FEC
 pub const PACKET_LENGTH_BYTES: usize = usize::pow(2, BLOCK_LENGTH as u32); // Packet length, in bytes
 
@@ -98,6 +98,12 @@ pub const fn calculate_block_starts_ends(blockconfigs: BlockConfigStack) -> Bloc
     _blockidentstack
 }
 
+pub type U24Arr = [u8; 3];
+const U24ARR_SIZE: usize = 24;
+pub type U48Arr = [U24Arr; 2];
+const U48ARR_SIZE: usize = U24ARR_SIZE * 2;
+
+const PACKED_STATUS_SIZE: usize = U48ARR_SIZE + 8usize + 8usize;
 const ALTITUDE_SIZE: usize = F32_DATA_SIZE as usize;
 const VOLTAGE_SIZE: usize = F32_DATA_SIZE as usize;
 const TEMPERATURE_SIZE: usize = F32_DATA_SIZE as usize;
@@ -105,12 +111,15 @@ const LATITUDE_SIZE: usize = F32_DATA_SIZE as usize;
 const LONGITUDE_SIZE: usize = F32_DATA_SIZE as usize;
 
 const BLOCK_CONFIG_STACK: BlockConfigStack = [
+    PACKED_STATUS_SIZE,
     ALTITUDE_SIZE,
     VOLTAGE_SIZE,
     TEMPERATURE_SIZE,
     LATITUDE_SIZE,
     LONGITUDE_SIZE,
 ];
+
+const _: () = assert!(BLOCK_CONFIG_STACK.len() == BLOCK_STACK_DATA_COUNT);
 
 pub const BLOCK_IDENT_STACK: BlockIdentStack = calculate_block_starts_ends(BLOCK_CONFIG_STACK);
 
