@@ -83,23 +83,23 @@ pub const fn u48_arr_to_coords(data: U48Arr) -> (f32, f32) {
 }
 
 // pub const fn pack_bools_to_byte(bools: [bool; 8]) -> u8 {
+//     const BOOL_MASK: u8 = 0b00000001
 //     let mut i: usize = 0;
-//     let bool_mask: u8 = 0b00000001;
 //     let mut packed_bools: u8 = 0b00000000;
 //     while i < bools.len() {
-//         packed_bools = packed_bools | ((bool_mask << i) & match bools[i] {true => 0b11111111, false => 0b00000000});
+//         packed_bools = packed_bools | ((BOOL_MASK << i) & match bools[i] {true => 0b11111111, false => 0b00000000});
 //         i += 1;
 //     }
 //     packed_bools
 // }
 
 pub fn pack_bools_to_byte(bools: [bool; 8]) -> u8 { // this version is faster. lol
+    const BOOL_MASK: u8 = 0b00000001;
     let mut i: usize = 0;
-    let bool_mask: u8 = 0b00000001;
     let mut packed_bools: u8 = 0b00000000;
     while i < bools.len() {
         if bools[i] {
-            packed_bools = packed_bools | bool_mask << i;
+            packed_bools = packed_bools | BOOL_MASK << i;
         }
         i += 1;
     }
