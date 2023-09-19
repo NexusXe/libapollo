@@ -93,18 +93,44 @@ pub const fn u48_arr_to_coords(data: U48Arr) -> (f32, f32) {
 //     packed_bools
 // }
 
-pub const fn pack_bools_to_byte(bools: [bool; 8]) -> u8 {
+pub type StatusBools = [bool; 8];
+
+pub const fn pack_bools_to_byte3(bools: StatusBools) -> u8 {
     let mut i: usize = 0;
     let mut packed_bools: u8 = 0b00000000;
     while i < bools.len() {
-        // https://doc.rust-lang.org/reference/types/boolean.html
-        // A bool is a special u8, and `true` is just `0x01`.
-        // `bool as u8` has no overhead (it's a direct cast) so
-        // we can eliminate a branch by just shifting and `and`ing.
-        packed_bools = packed_bools | (bools[i] as u8) << i;
+        packed_bools |= (bools[i] as u8) << i;
         i += 1;
     }
     packed_bools
+}
+
+pub const fn unpack_bools(packed_bools: u8) -> StatusBools {
+    let mut i: usize = 0;
+    let mut bools: StatusBools = [false; 8];
+    const MASK_SET: [u8; 8] = [1, 2, 4, 8, 16, 32, 64, 128];
+
+    while i < 8 {
+        let x = (packed_bools & MASK_SET[i]) >> i;
+        // unpacked bools will always be either 0x00 or 0x01*, so we can
+        // tell the compiler that it doesn't have to convert to a bool
+        // (which it would do with a `cmp` to 0). this is bit-identical
+        // to `bools[i] = std::mem::transmute(x);` but more code-safe
+        // *technically, rust checks the value of a bool by only checking
+        // its least-significant bit; therefore, a bool with the value
+        // `0b1110` is `false`, whereas `0b1111` is `true`. however, the
+        // compiler is not fond of this and will lead to `SIGILL`s.
+        if (x != 0) && (x != 1) { 
+            unreachable!();
+        }
+        bools[i] = x != 0;
+        i += 1;
+    }
+    bools
+}
+
+pub const fn make_statuses(status_bools: [StatusBools; 2]) -> [u8; 2] {
+    [pack_bools_to_byte3(status_bools[0]), pack_bools_to_byte3(status_bools[1])]
 }
 
 pub const fn make_status_data(lat: f32, long: f32, status: [u8; 2]) -> [[u8; 4]; 2] {
