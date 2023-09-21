@@ -5,8 +5,6 @@ use crate::parameters::*;
 use crate::{generate_packet, generate_packet_no_fec};
 
 use reed_solomon::{Encoder, Decoder};
-// use zerocopy::{AsBytes, FromBytes, FromZeroes};
-// use serde::{Serialize, Deserialize};
 
 fn make_packet_skeleton(_type: bool) -> TotalMessage {
     let _blockstackdata = match _type {
@@ -65,23 +63,8 @@ pub struct Block {
 
 impl Block {
     pub fn len(&self) -> usize {
-        // each block is its label, data, and then the delimiter
         (if likely(self.do_transmit_label) {BLOCK_LABEL_SIZE} else {0}) + self.data.len() + BLOCK_DELIMITER_SIZE
     }
-    // pub const fn transmit_sections_to_bool(&self) -> [bool; 8] {
-    //     let mut bool_stack = [false; 8];
-
-    //     let mut n: u8 = 0b00000001;
-    //     let mut i = 0;
-
-    //     while i < 8 {
-    //         bool_stack[i] = (self.transmit_sections & n) != 0;
-    //         n = n << 1;
-    //         i += 1;
-    //     }
-    //     // label before, label after, BLOCK_DELIMITER before, BLOCK_DELIMITER after, CALLSIGN before, data, START_END_HEADER before, START_END_HEADER after
-    //     bool_stack
-    // }
 }
 
 
@@ -98,11 +81,6 @@ pub type PacketDecodedData = [f32; BLOCK_STACK_DATA_COUNT];
 #[derive(Debug, Copy, Clone)]
 pub struct BlockStack {
     blocks: [Block; BARE_MESSAGE_LENGTH_BLOCKS],
-    // altitude_block: Block<ALTITUDE_SIZE>,
-    // voltage_block: Block<VOLTAGE_SIZE>,
-    // temperature_block: Block<TEMPERATURE_SIZE>,
-    // latitude_block: Block<LATITUDE_SIZE>,
-    // longitude_block: Block<LONGITUDE_SIZE>,
 }
 
 impl BlockStack {
@@ -187,11 +165,11 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
     }
 }
 
-/**
-Constructs a packet of shape `[u8; BARE_MESSAGE_LENGTH_BYTES]` from a `BlockStack` object.
-
-TODO: make fn const
-*/
+/// Constructs a packet of shape [u8; [BARE_MESSAGE_LENGTH_BYTES]] from a [BlockStack] object.
+/// Each block begins with its 1 byte label attribute (if do_transmit_label is true), followed by the data.
+/// Blocks are delimited by [BLOCK_DELIMITER].
+///
+/// TODO: make fn const
 #[rustc_do_not_const_check]
 pub const fn construct_packet(_blockstack: BlockStack) -> BareMessage {
     // Constructs a packet from the given blocks. Each block begins with its 1 byte label attribute (if do_transmit_label is true), followed by the data. Blocks are delimited by BLOCK_DELIMITER.
@@ -384,25 +362,26 @@ pub fn values_from_packet(_packet: BareMessage) -> PacketDecodedData {
 }
 
 
-pub fn decode_packet_test() -> BareMessage {
+// fn decode_packet_test() -> BareMessage {
 
-    let mut example_packet: TotalMessage = make_packet_skeleton(true);
-    let dec = Decoder::new(FEC_EXTRA_BYTES);
+//     let mut example_packet: TotalMessage = make_packet_skeleton(true);
+//     let dec = Decoder::new(FEC_EXTRA_BYTES);
 
-    let known_erasures = [0];
+//     let known_erasures = [0];
 
-    let recovery_buffer = dec.correct(&mut example_packet, Some(&known_erasures)).unwrap();
-    let recovered = recovery_buffer.data();
+//     let recovery_buffer = dec.correct(&mut example_packet, Some(&known_erasures)).unwrap();
+//     let recovered = recovery_buffer.data();
 
-    let mut recovered_packet: BareMessage = [0u8; BARE_MESSAGE_LENGTH_BYTES];
+//     let mut recovered_packet: BareMessage = [0u8; BARE_MESSAGE_LENGTH_BYTES];
 
-    for i in 0..recovered.len() {
-        recovered_packet[i] = recovered[i];
-    }
+//     for i in 0..recovered.len() {
+//         recovered_packet[i] = recovered[i];
+//     }
 
-    recovered_packet
+//     recovered_packet
 
-}
+// }
+
 #[cfg(test)]
 mod tests {
     use super::*;

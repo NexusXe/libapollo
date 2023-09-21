@@ -1,3 +1,15 @@
+//! Current combined implementation of both libapollo and apolloTNC.
+//!
+//! In the future, this will be split into two (three?) parts:
+//!
+//! - libapollo: apollo-specific packet building, manipulation, and encoding.
+//! - apolloTNC: aprs-specific packet building, manipulation, and encoding.
+//! Should be a viable no_std library for anyone wishing to implement APRS.
+//! Will it be? Who knows.
+//!
+//! - tnc-template: Akin to balloon-template (an implementation of libapollo),
+//! it will be an actual implementation of apolloTNC.
+
 #![no_std]
 
 #![feature(core_intrinsics)]
@@ -11,23 +23,13 @@
 #![feature(const_fn_floating_point_arithmetic)]
 #![allow(internal_features)]
 
-/**
-Current combined implementation of both libapollo and apolloTNC.
 
-In the future, this will be split into two (three?) parts:
-
-- libapollo: apollo-specific packet building, manipulation, and encoding.
-- apolloTNC: aprs-specific packet building, manipulation, and encoding.
-Should be a viable no_std library for anyone wishing to implement APRS.
-Will it be? Who knows.
-
-- tnc-template: Akin to balloon-template (an implementation of libapollo),
-it will be an actual implementation of apolloTNC.
-*/
 
 pub mod parameters;
 pub mod telemetry;
 pub mod figures;
+
+
 
 use parameters::*;
 use crate::telemetry::{BlockStackData, construct_blocks, construct_packet, encode_packet};
