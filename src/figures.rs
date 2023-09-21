@@ -1,3 +1,5 @@
+use core::ops::Range;
+
 use crate::parameters::{U24Arr, U48Arr};
 
 const fn get_byte(n: usize, number: u32) -> u8 {
@@ -8,28 +10,38 @@ const fn to_24_bit(n: u32) -> U24Arr {
     [get_byte(0, n), get_byte(1, n), get_byte(2, n)]
 }
 
+
 pub struct FloatMap<TI, TO> {
     slope32: f32,
     slope64: f64,
-    input_range: [TI; 2],
-    output_range: [TO; 2]
+    input_range: Range<TI>,
+    output_range: Range<TO>,
 }
 
 impl FloatMap<f32, u32> {
+    pub const fn new(_input_range: Range<f32>, _output_range: Range<u32>) -> Self {
+        let _slope64: f64 = (_output_range.start - _output_range.end) as f64 / (_input_range.end - _input_range.start) as f64;
+        FloatMap {
+            slope32: _slope64 as f32,
+            slope64: _slope64,
+            input_range: _input_range,
+            output_range: _output_range,
+        }
+    }
     /// Maps an input float between `self.output_range[0]` and `self.output_range[1]`.
     pub const fn map(&self, input: f32) -> U24Arr {
-        debug_assert!(input >= self.input_range[0]);
-        debug_assert!(input <= self.input_range[1]);
+        debug_assert!(input >= self.input_range.start);
+        debug_assert!(input <= self.input_range.end);
 
-        let output: u32 = (self.output_range[0] as f32 + self.slope32 * (input - self.input_range[0] as f32)) as u32;
+        let output: u32 = (self.output_range.start as f32 + self.slope32 * (input - self.input_range.start as f32)) as u32;
 
-        debug_assert!(output >= self.output_range[0]);
-        debug_assert!(output <= self.output_range[1]);
+        debug_assert!(output >= self.output_range.start);
+        debug_assert!(output <= self.output_range.end);
         debug_assert!(output <= 2u32.pow(24));
         to_24_bit(output)
     }
     pub const fn demap_float(&self, input: U24Arr) -> f32 {
-        ((-(self.output_range[0] as f64) + (self.slope64 * (self.input_range[0] as f64)) + from_24_bit(input) as f64)/self.slope64) as f32
+        ((-(self.output_range.start as f64) + (self.slope64 * (self.input_range.start as f64)) + from_24_bit(input) as f64)/self.slope64) as f32
     }
 }
 
@@ -40,20 +52,30 @@ const LAT_INPUT_END: isize = 90;
 const LONG_INPUT_START: isize = -180;
 const LONG_INPUT_END: isize = 180;
 
+pub const fn make_floatmap_f32(_input_range: Range<u32>, _output_range: Range<f32>) -> FloatMap<u32, f32> {
+    let _slope64: f64 = (_output_range.start - _output_range.end) as f64 / (_input_range.end - _input_range.start) as f64;
+    FloatMap {
+        slope32: _slope64 as f32,
+        slope64: _slope64,
+        input_range: _input_range,
+        output_range: _output_range,
+    }
+}
+
 /// Constants for mapping -90.0 to 90.0 (latitude values) to a 24-bit integer.
 const LATITUDE_MAP: FloatMap<f32, u32> = FloatMap {
     slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LAT_INPUT_END - LAT_INPUT_START) as f64) as f32,
     slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LAT_INPUT_END - LAT_INPUT_START) as f64),
-    input_range: [LAT_INPUT_START as f32, LAT_INPUT_END as f32],
-    output_range: [U24_OUTPUT_START, U24_OUTPUT_END],
+    input_range: (LAT_INPUT_START as f32 .. LAT_INPUT_END as f32),
+    output_range: (U24_OUTPUT_START .. U24_OUTPUT_END),
 };
 
 /// Constants for mapping -180.0 to 180.0 (longitude values) to a 24-bit integer.
 const LONGITUDE_MAP: FloatMap<f32, u32> = FloatMap {
     slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LONG_INPUT_END - LONG_INPUT_START) as f64) as f32,
     slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LONG_INPUT_END - LONG_INPUT_START) as f64),
-    input_range: [LONG_INPUT_START as f32, LONG_INPUT_END as f32],
-    output_range: [U24_OUTPUT_START, U24_OUTPUT_END],
+    input_range: (LONG_INPUT_START as f32 .. LONG_INPUT_END as f32),
+    output_range: (U24_OUTPUT_START .. U24_OUTPUT_END),
 };
 
 const fn from_24_bit(n: U24Arr) -> u32 {
@@ -67,7 +89,7 @@ const fn from_24_bit(n: U24Arr) -> u32 {
 }
 
 const fn demap_float(_floatmap: FloatMap<f32, u32>, input: U24Arr) -> f32 {
-    ((-(_floatmap.output_range[0] as f64) + (_floatmap.slope64 * (_floatmap.input_range[0] as f64)) + from_24_bit(input) as f64)/_floatmap.slope64) as f32
+    ((-(_floatmap.output_range.start as f64) + (_floatmap.slope64 * (_floatmap.input_range.start as f64)) + from_24_bit(input) as f64)/_floatmap.slope64) as f32
 }
 
 pub const fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {

@@ -6,7 +6,7 @@ use crate::{generate_packet, generate_packet_no_fec};
 
 use reed_solomon::{Encoder, Decoder};
 
-fn make_packet_skeleton(_type: bool) -> TotalMessage {
+pub fn make_packet_skeleton(_type: bool) -> TotalMessage {
     let _blockstackdata = match _type {
         true => MAX_BLOCKSTACKDATA,
         false => MIN_BLOCKSTACKDATA,
