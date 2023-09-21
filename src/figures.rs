@@ -2,6 +2,7 @@ use core::ops::Range;
 
 use crate::parameters::{U24Arr, U48Arr};
 
+/// Returns byte `n` from `number`.
 const fn get_byte(n: usize, number: u32) -> u8 {
     (number >> (8 * n)) as u8
 }
