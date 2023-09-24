@@ -1,15 +1,13 @@
 use crate::parameters::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 // http://www.aprs.org/doc/APRS101.PDF
 
-pub const FLAG      : &'static  u8  = &APRS_FLAG      ;
-pub const DST_ADDR  : &'static [u8] = &APRS_DST_ADDR  ;
-pub const SRC_ADDR  : &'static [u8] = &APRS_SRC_ADDR  ;
-pub const PATH      : &'static [u8] = &APRS_PATH      ;
-pub const CTRL_FIELD: &'static  u8  = &APRS_CTRL_FIELD;
-pub const PRTCL_ID  : &'static  u8  = &APRS_PRTCL_ID  ; 
-
-
+pub const FLAG: &'static u8 = &APRS_FLAG;
+pub const DST_ADDR: &'static [u8] = &APRS_DST_ADDR;
+pub const SRC_ADDR: &'static [u8] = &APRS_SRC_ADDR;
+pub const PATH: &'static [u8] = &APRS_PATH;
+pub const CTRL_FIELD: &'static u8 = &APRS_CTRL_FIELD;
+pub const PRTCL_ID: &'static u8 = &APRS_PRTCL_ID;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 struct AX25InformationField {
@@ -56,7 +54,7 @@ impl AX25Block {
 
 /// We shouldn't have to rely on an external crate for something as simple
 /// as a checksum, but CRC16 is a fucking mess. Genuinely miserable.
-/// 
+///
 /// https://www.reddit.com/r/amateurradio/comments/8o3hlk/aprs_crcfcs_bytes/
 const fn build_fcs(_frame: &[u8]) -> [u8; 2] {
     use crc::{Crc, NoTable, CRC_16_IBM_3740};
@@ -67,7 +65,10 @@ const fn build_fcs(_frame: &[u8]) -> [u8; 2] {
 pub fn build_aprs_data(_latitude: f32, _longitude: f32) -> [u8; UI_FRAME_MAX] {
     // todo!();
     // let _mic_e_data: ;
-    let mut current_ui_frame: AX25Block = AX25Block { information_field: [0u8; 256], frame_check_sequence: [0u8; 2] };
+    let mut current_ui_frame: AX25Block = AX25Block {
+        information_field: [0u8; 256],
+        frame_check_sequence: [0u8; 2],
+    };
     current_ui_frame.frame_check_sequence = build_fcs(&current_ui_frame.to_frame());
     current_ui_frame.to_frame()
 }

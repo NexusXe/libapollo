@@ -20,14 +20,17 @@ pub const FIGURES_FRAME_SIZE: usize = 1024; // bytes
 
 pub const BLOCK_DELIMITER_SIZE: usize = core::mem::size_of_val(&BLOCK_DELIMITER);
 pub const BARE_MESSAGE_LENGTH_BYTES: usize = 64; // Total message length, in bytes.
-pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES) >>  (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the FEC
+pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES) >> (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the FEC
 pub const PACKET_LENGTH_BYTES: usize = usize::pow(2, BLOCK_LENGTH as u32); // Packet length, in bytes
 
 pub const FEC_EXTRA_PACKETS: usize = 5; // Number of extra packets to send for FEC
 pub const FEC_K: usize = BARE_MESSAGE_LENGTH_BYTES >> BLOCK_LENGTH; // Ensures that each packet is 2^BLOCK_LENGTH bytes
 pub const FEC_M: usize = FEC_K + FEC_EXTRA_PACKETS;
 
-const _: () = assert!(FEC_EXTRA_BYTES == TOTAL_MESSAGE_LENGTH_BYTES - BARE_MESSAGE_LENGTH_BYTES, "FEC_BYTES_math_err");
+const _: () = assert!(
+    FEC_EXTRA_BYTES == TOTAL_MESSAGE_LENGTH_BYTES - BARE_MESSAGE_LENGTH_BYTES,
+    "FEC_BYTES_math_err"
+);
 
 const MESSAGE_PREFIX_BLOCKS: usize = 1; // CONSTANT Prefix blocks
 const MESSAGE_SUFFIX_BLOCKS: usize = 1; // CONSTANT Suffix blocks
@@ -48,11 +51,28 @@ pub const BLOCK_LABEL_SIZE: usize = 1;
 pub const FEC_EXTRA_BYTES: usize = FEC_EXTRA_PACKETS * PACKET_LENGTH_BYTES; // Number of extra bytes to send for FEC
 pub const TOTAL_MESSAGE_LENGTH_BYTES: usize = BARE_MESSAGE_LENGTH_BYTES + FEC_EXTRA_BYTES; // Total message length, in bytes
 
- // Start of message header, in binary it is 00 01 10 11 11 10 01 00
+// Start of message header, in binary it is 00 01 10 11 11 10 01 00
 
-pub const START_HEADER_DATA: [u8; CALLSIGN.len() + 2] = [START_END_HEADER.to_le_bytes()[0], START_END_HEADER.to_le_bytes()[1], CALLSIGN[0], CALLSIGN[1], CALLSIGN[2], CALLSIGN[3], CALLSIGN[4], CALLSIGN[5]]; // Start of message header data
-pub const END_HEADER_DATA:   [u8; CALLSIGN.len() + 2] = [CALLSIGN[0], CALLSIGN[1], CALLSIGN[2], CALLSIGN[3], CALLSIGN[4], CALLSIGN[5], START_END_HEADER.to_le_bytes()[0], START_END_HEADER.to_le_bytes()[1]]; // End of message header data
-
+pub const START_HEADER_DATA: [u8; CALLSIGN.len() + 2] = [
+    START_END_HEADER.to_le_bytes()[0],
+    START_END_HEADER.to_le_bytes()[1],
+    CALLSIGN[0],
+    CALLSIGN[1],
+    CALLSIGN[2],
+    CALLSIGN[3],
+    CALLSIGN[4],
+    CALLSIGN[5],
+]; // Start of message header data
+pub const END_HEADER_DATA: [u8; CALLSIGN.len() + 2] = [
+    CALLSIGN[0],
+    CALLSIGN[1],
+    CALLSIGN[2],
+    CALLSIGN[3],
+    CALLSIGN[4],
+    CALLSIGN[5],
+    START_END_HEADER.to_le_bytes()[0],
+    START_END_HEADER.to_le_bytes()[1],
+]; // End of message header data
 
 const PACKET_BEGINNING_OFFSET: usize = START_HEADER_DATA.len() + BLOCK_DELIMITER_SIZE;
 
@@ -83,16 +103,31 @@ pub struct BlockIdent {
 
 pub type BlockIdentStack = [BlockIdent; BLOCK_STACK_DATA_COUNT];
 
-
 pub const fn calculate_block_starts_ends(blockconfigs: BlockConfigStack) -> BlockIdentStack {
+    let mut _blockidentstack: BlockIdentStack = [BlockIdent {
+        size: 4,
+        beginning_location: 0,
+        end_location: 0,
+    }; BLOCK_STACK_DATA_COUNT];
 
-    let mut _blockidentstack: BlockIdentStack = [BlockIdent { size: 4, beginning_location: 0, end_location: 0 }; BLOCK_STACK_DATA_COUNT];
-
-    _blockidentstack[0] = BlockIdent {size: blockconfigs[0], beginning_location: PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE, end_location: PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE + blockconfigs[0]};
+    _blockidentstack[0] = BlockIdent {
+        size: blockconfigs[0],
+        beginning_location: PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE,
+        end_location: PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE + blockconfigs[0],
+    };
     let mut _block_in_hand: usize = 1;
 
     while _block_in_hand < BLOCK_STACK_DATA_COUNT {
-        _blockidentstack[_block_in_hand] = BlockIdent { size: blockconfigs[_block_in_hand], beginning_location: _blockidentstack[_block_in_hand - 1].end_location + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE, end_location: _blockidentstack[_block_in_hand - 1].end_location + BLOCK_DELIMITER_SIZE + BLOCK_LABEL_SIZE + blockconfigs[_block_in_hand] };
+        _blockidentstack[_block_in_hand] = BlockIdent {
+            size: blockconfigs[_block_in_hand],
+            beginning_location: _blockidentstack[_block_in_hand - 1].end_location
+                + BLOCK_DELIMITER_SIZE
+                + BLOCK_LABEL_SIZE,
+            end_location: _blockidentstack[_block_in_hand - 1].end_location
+                + BLOCK_DELIMITER_SIZE
+                + BLOCK_LABEL_SIZE
+                + blockconfigs[_block_in_hand],
+        };
         _block_in_hand += 1;
     }
     _blockidentstack
@@ -129,7 +164,6 @@ pub const BLOCK_IDENT_STACK: BlockIdentStack = calculate_block_starts_ends(BLOCK
 // const _: () = assert!(BLOCK_IDENT_STACK[1].beginning_location == VOLTAGE_LOCATION_START);
 // const _: () = assert!(BLOCK_IDENT_STACK[1].end_location == VOLTAGE_LOCATION_END);
 
-
 // const _: () = assert!(BLOCK_IDENT_STACK[2].beginning_location == TEMPERATURE_LOCATION_START);
 // const _: () = assert!(BLOCK_IDENT_STACK[2].end_location == TEMPERATURE_LOCATION_END);
 
@@ -138,7 +172,6 @@ pub const BLOCK_IDENT_STACK: BlockIdentStack = calculate_block_starts_ends(BLOCK
 
 // const _: () = assert!(BLOCK_IDENT_STACK[4].beginning_location == LONGITUDE_LOCATION_START);
 // const _: () = assert!(BLOCK_IDENT_STACK[4].end_location == LONGITUDE_LOCATION_END);
-
 
 // APRS related constants
 const APRS_SOFTWARE_VERSION_TXT: &str = "0.0.2";
@@ -153,7 +186,6 @@ const APRS_SRC_SSID: &[u8] = b"-11";
 
 pub const APRS_SRC_ADDR: [u8; CALLSIGN.len() + APRS_SRC_SSID.len()] = *b"KD9TFA-11";
 
-
 const APRS_PATH_TXT: &str = "WIDE1-1,WIDE2-1";
 pub const APRS_PATH: &[u8] = APRS_PATH_TXT.as_bytes();
 
@@ -163,11 +195,16 @@ pub const APRS_PRTCL_ID: u8 = 0xf0;
 pub const APRS_INFO_FIELD_MAX: usize = 256;
 pub const APRS_FCS_SIZE: usize = 2;
 
-pub const UI_FRAME_MAX: usize  = 1 + APRS_DST_ADDR.len() + APRS_SRC_ADDR.len() + APRS_PATH.len() + 1 + 1 + APRS_INFO_FIELD_MAX + APRS_FCS_SIZE;
-
+pub const UI_FRAME_MAX: usize = 1
+    + APRS_DST_ADDR.len()
+    + APRS_SRC_ADDR.len()
+    + APRS_PATH.len()
+    + 1
+    + 1
+    + APRS_INFO_FIELD_MAX
+    + APRS_FCS_SIZE;
 
 // TNC parameters
-
 
 // Figures parameters
 

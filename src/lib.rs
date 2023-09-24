@@ -11,7 +11,6 @@
 //! it will be an actual implementation of apolloTNC.
 
 #![no_std]
-
 #![feature(core_intrinsics)]
 #![feature(const_size_of_val)]
 #![feature(const_likely)]
@@ -23,16 +22,12 @@
 #![feature(const_fn_floating_point_arithmetic)]
 #![allow(internal_features)]
 
-
-
+pub mod figures;
 pub mod parameters;
 pub mod telemetry;
-pub mod figures;
 
-
-
+use crate::telemetry::{construct_blocks, construct_packet, encode_packet, BlockStackData};
 use parameters::*;
-use crate::telemetry::{BlockStackData, construct_blocks, construct_packet, encode_packet};
 
 pub fn generate_packet(_blockstackdata: BlockStackData) -> TotalMessage {
     // _altitude = 1337.69f32.to_be_bytes();

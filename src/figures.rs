@@ -11,7 +11,6 @@ const fn to_24_bit(n: u32) -> U24Arr {
     [get_byte(0, n), get_byte(1, n), get_byte(2, n)]
 }
 
-
 pub struct FloatMap<TI, TO> {
     slope32: f32,
     slope64: f64,
@@ -21,7 +20,8 @@ pub struct FloatMap<TI, TO> {
 
 impl FloatMap<f32, u32> {
     pub const fn new(_input_range: Range<f32>, _output_range: Range<u32>) -> Self {
-        let _slope64: f64 = (_output_range.start - _output_range.end) as f64 / (_input_range.end - _input_range.start) as f64;
+        let _slope64: f64 = (_output_range.start - _output_range.end) as f64
+            / (_input_range.end - _input_range.start) as f64;
         FloatMap {
             slope32: _slope64 as f32,
             slope64: _slope64,
@@ -34,7 +34,9 @@ impl FloatMap<f32, u32> {
         debug_assert!(input >= self.input_range.start);
         debug_assert!(input <= self.input_range.end);
 
-        let output: u32 = (self.output_range.start as f32 + self.slope32 * (input - self.input_range.start as f32)) as u32;
+        let output: u32 = (self.output_range.start as f32
+            + self.slope32 * (input - self.input_range.start as f32))
+            as u32;
 
         debug_assert!(output >= self.output_range.start);
         debug_assert!(output <= self.output_range.end);
@@ -42,7 +44,10 @@ impl FloatMap<f32, u32> {
         to_24_bit(output)
     }
     pub const fn demap_float(&self, input: U24Arr) -> f32 {
-        ((-(self.output_range.start as f64) + (self.slope64 * (self.input_range.start as f64)) + from_24_bit(input) as f64)/self.slope64) as f32
+        ((-(self.output_range.start as f64)
+            + (self.slope64 * (self.input_range.start as f64))
+            + from_24_bit(input) as f64)
+            / self.slope64) as f32
     }
 }
 
@@ -53,8 +58,12 @@ const LAT_INPUT_END: isize = 90;
 const LONG_INPUT_START: isize = -180;
 const LONG_INPUT_END: isize = 180;
 
-pub const fn make_floatmap_f32(_input_range: Range<u32>, _output_range: Range<f32>) -> FloatMap<u32, f32> {
-    let _slope64: f64 = (_output_range.start - _output_range.end) as f64 / (_input_range.end - _input_range.start) as f64;
+pub const fn make_floatmap_f32(
+    _input_range: Range<u32>,
+    _output_range: Range<f32>,
+) -> FloatMap<u32, f32> {
+    let _slope64: f64 = (_output_range.start - _output_range.end) as f64
+        / (_input_range.end - _input_range.start) as f64;
     FloatMap {
         slope32: _slope64 as f32,
         slope64: _slope64,
@@ -65,32 +74,39 @@ pub const fn make_floatmap_f32(_input_range: Range<u32>, _output_range: Range<f3
 
 /// Constants for mapping -90.0 to 90.0 (latitude values) to a 24-bit integer.
 const LATITUDE_MAP: FloatMap<f32, u32> = FloatMap {
-    slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LAT_INPUT_END - LAT_INPUT_START) as f64) as f32,
-    slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LAT_INPUT_END - LAT_INPUT_START) as f64),
-    input_range: (LAT_INPUT_START as f32 .. LAT_INPUT_END as f32),
-    output_range: (U24_OUTPUT_START .. U24_OUTPUT_END),
+    slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LAT_INPUT_END - LAT_INPUT_START) as f64)
+        as f32,
+    slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64
+        / (LAT_INPUT_END - LAT_INPUT_START) as f64),
+    input_range: (LAT_INPUT_START as f32..LAT_INPUT_END as f32),
+    output_range: (U24_OUTPUT_START..U24_OUTPUT_END),
 };
 
 /// Constants for mapping -180.0 to 180.0 (longitude values) to a 24-bit integer.
 const LONGITUDE_MAP: FloatMap<f32, u32> = FloatMap {
-    slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LONG_INPUT_END - LONG_INPUT_START) as f64) as f32,
-    slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LONG_INPUT_END - LONG_INPUT_START) as f64),
-    input_range: (LONG_INPUT_START as f32 .. LONG_INPUT_END as f32),
-    output_range: (U24_OUTPUT_START .. U24_OUTPUT_END),
+    slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64
+        / (LONG_INPUT_END - LONG_INPUT_START) as f64) as f32,
+    slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64
+        / (LONG_INPUT_END - LONG_INPUT_START) as f64),
+    input_range: (LONG_INPUT_START as f32..LONG_INPUT_END as f32),
+    output_range: (U24_OUTPUT_START..U24_OUTPUT_END),
 };
 
 const fn from_24_bit(n: U24Arr) -> u32 {
     let mut output: u32 = 0;
     let mut i: usize = 0;
     while i < n.len() {
-        output = output | ((n[i] as u32) << 8*i);
+        output = output | ((n[i] as u32) << 8 * i);
         i += 1;
     }
     output
 }
 
 const fn demap_float(_floatmap: FloatMap<f32, u32>, input: U24Arr) -> f32 {
-    ((-(_floatmap.output_range.start as f64) + (_floatmap.slope64 * (_floatmap.input_range.start as f64)) + from_24_bit(input) as f64)/_floatmap.slope64) as f32
+    ((-(_floatmap.output_range.start as f64)
+        + (_floatmap.slope64 * (_floatmap.input_range.start as f64))
+        + from_24_bit(input) as f64)
+        / _floatmap.slope64) as f32
 }
 
 pub const fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {
@@ -98,7 +114,10 @@ pub const fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {
 }
 
 pub const fn u48_arr_to_coords(data: U48Arr) -> (f32, f32) {
-    (demap_float(LATITUDE_MAP, data[0]), demap_float(LONGITUDE_MAP, data[1]))
+    (
+        demap_float(LATITUDE_MAP, data[0]),
+        demap_float(LONGITUDE_MAP, data[1]),
+    )
 }
 
 pub type StatusBools = [bool; 8];
@@ -113,24 +132,24 @@ pub const fn pack_bools_to_byte(bools: StatusBools) -> u8 {
     packed_bools
 }
 
-    /// Unpacks a u8 into a [StatusBools], rather quickly.
-    /// 
-    /// Some implementation info:
-    /// 
-    /// unpacked bools will always be either 0x00 or 0x01*, so we can
-    /// tell the compiler that it doesn't have to convert to a bool
-    /// (which it would do with a `cmp` to 0). this is bit-identical
-    /// to `bools[i] = std::mem::transmute(x);` but more code-safe
-    ///
-    /// *technically, rust checks the value of a bool by only checking
-    /// its least-significant bit; therefore, a bool with the value
-    /// `0b1110` is `false`, whereas `0b1111` is `true`. however, the
-    /// compiler is not fond of this and will lead to `SIGILL`s,
-    /// i think because the compiler will put unaligned values into
-    /// the "excess" space of the bool, yet the computer is still
-    /// writing the "excess" bits of the non-standard bool
-    /// this causes problems, as one may expect, and is technically
-    /// a memory access violation (fun!)
+/// Unpacks a u8 into a [StatusBools], rather quickly.
+///
+/// Some implementation info:
+///
+/// unpacked bools will always be either 0x00 or 0x01*, so we can
+/// tell the compiler that it doesn't have to convert to a bool
+/// (which it would do with a `cmp` to 0). this is bit-identical
+/// to `bools[i] = std::mem::transmute(x);` but more code-safe
+///
+/// *technically, rust checks the value of a bool by only checking
+/// its least-significant bit; therefore, a bool with the value
+/// `0b1110` is `false`, whereas `0b1111` is `true`. however, the
+/// compiler is not fond of this and will lead to `SIGILL`s,
+/// i think because the compiler will put unaligned values into
+/// the "excess" space of the bool, yet the computer is still
+/// writing the "excess" bits of the non-standard bool
+/// this causes problems, as one may expect, and is technically
+/// a memory access violation (fun!)
 pub const fn unpack_bools(packed_bools: u8) -> StatusBools {
     let mut i: usize = 0;
     let mut bools: StatusBools = [false; 8];
@@ -138,9 +157,8 @@ pub const fn unpack_bools(packed_bools: u8) -> StatusBools {
 
     while i < 8 {
         let x = (packed_bools & MASK_SET[i]) >> i;
-        
 
-        if (x != 0) && (x != 1) { 
+        if (x != 0) && (x != 1) {
             unreachable!();
         }
         bools[i] = x != 0;
@@ -150,7 +168,10 @@ pub const fn unpack_bools(packed_bools: u8) -> StatusBools {
 }
 
 pub const fn make_statuses(status_bools: [StatusBools; 2]) -> [u8; 2] {
-    [pack_bools_to_byte(status_bools[0]), pack_bools_to_byte(status_bools[1])]
+    [
+        pack_bools_to_byte(status_bools[0]),
+        pack_bools_to_byte(status_bools[1]),
+    ]
 }
 
 pub const fn make_status_data(lat: f32, long: f32, status: [u8; 2]) -> [[u8; 4]; 2] {
@@ -179,13 +200,20 @@ pub const fn make_status_data(lat: f32, long: f32, status: [u8; 2]) -> [[u8; 4];
 
 #[cfg(test)]
 mod tests {
-    const EXAMPLE_STATUSES: [StatusBools; 2] = [[true, true, false, true, true, true, true, false], [false, true, false, false, false, false, false, false]];
+    const EXAMPLE_STATUSES: [StatusBools; 2] = [
+        [true, true, false, true, true, true, true, false],
+        [false, true, false, false, false, false, false, false],
+    ];
     use super::*;
 
     #[test]
     fn check_status_packing() {
         const ATTEMPT: [u8; 2] = make_statuses(EXAMPLE_STATUSES);
         const EXPECTED_OUTPUT: [u8; 2] = [0b01111011u8, 0b00000010u8];
-        assert_eq!(ATTEMPT, EXPECTED_OUTPUT, "\nexpected: [{:08b}, {:08b}]\nfound:    [{:08b}, {:08b}]", EXPECTED_OUTPUT[0], EXPECTED_OUTPUT[1], ATTEMPT[0], ATTEMPT[1]);
+        assert_eq!(
+            ATTEMPT, EXPECTED_OUTPUT,
+            "\nexpected: [{:08b}, {:08b}]\nfound:    [{:08b}, {:08b}]",
+            EXPECTED_OUTPUT[0], EXPECTED_OUTPUT[1], ATTEMPT[0], ATTEMPT[1]
+        );
     }
 }

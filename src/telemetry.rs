@@ -4,7 +4,7 @@ use core::option::Option::Some;
 use crate::parameters::*;
 use crate::{generate_packet, generate_packet_no_fec};
 
-use reed_solomon::{Encoder, Decoder};
+use reed_solomon::{Decoder, Encoder};
 
 pub fn make_packet_skeleton(_type: bool) -> TotalMessage {
     let _blockstackdata = match _type {
@@ -21,7 +21,6 @@ const fn make_packet_skeleton_nofec(_type: bool) -> BareMessage {
     };
     generate_packet_no_fec(_blockstackdata)
 }
-
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -63,10 +62,14 @@ pub struct Block {
 
 impl Block {
     pub fn len(&self) -> usize {
-        (if likely(self.do_transmit_label) {BLOCK_LABEL_SIZE} else {0}) + self.data.len() + BLOCK_DELIMITER_SIZE
+        (if likely(self.do_transmit_label) {
+            BLOCK_LABEL_SIZE
+        } else {
+            0
+        }) + self.data.len()
+            + BLOCK_DELIMITER_SIZE
     }
 }
-
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -75,7 +78,6 @@ pub struct BlockStackData {
 }
 
 pub type PacketDecodedData = [f32; BLOCK_STACK_DATA_COUNT];
-
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -100,7 +102,6 @@ const MIN_BLOCKSTACKDATA: BlockStackData = BlockStackData {
 const _MIN_BLOCKSTACK: BlockStack = construct_blocks(&MIN_BLOCKSTACKDATA);
 // const MIN_PACKET: [u8; BARE_MESSAGE_LENGTH_BYTES] = construct_packet(MIN_BLOCKSTACK);
 pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
-
     let mut data_location: usize = 0;
     const FIRST_BLOCK_LABEL: u8 = 128;
 
@@ -123,32 +124,32 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
     };
     data_location += 1;
     let _voltage_block = Block {
-        label:  FIRST_BLOCK_LABEL + data_location as u8,
+        label: FIRST_BLOCK_LABEL + data_location as u8,
         data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
-        do_transmit_label: true
+        do_transmit_label: true,
     };
     data_location += 1;
     let _temperature_block = Block {
         label: FIRST_BLOCK_LABEL + data_location as u8,
         data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
-        do_transmit_label: true
+        do_transmit_label: true,
     };
     data_location += 1;
     let _latitude_block = Block {
         label: FIRST_BLOCK_LABEL + data_location as u8,
         data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
-        do_transmit_label: true
+        do_transmit_label: true,
     };
     data_location += 1;
     let _longitude_block = Block {
         label: FIRST_BLOCK_LABEL + data_location as u8,
         data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
-        do_transmit_label: true
+        do_transmit_label: true,
     };
     const _END_HEADER_BLOCK: Block = Block {
         label: FIRST_BLOCK_LABEL + BLOCK_STACK_DATA_COUNT as u8,
         data: BlockData::StaticData(Some(&END_HEADER_DATA)),
-        do_transmit_label: true
+        do_transmit_label: true,
     };
 
     BlockStack {
@@ -161,7 +162,7 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
             _latitude_block,
             _longitude_block,
             _END_HEADER_BLOCK,
-        ]
+        ],
     }
 }
 
@@ -179,23 +180,25 @@ pub const fn construct_packet(_blockstack: BlockStack) -> BareMessage {
     let mut i = 0;
     while i < _blockstack.len() {
         let block = _blockstack.blocks[i];
-        if likely(block.do_transmit_label) { // afaict this has genuinely no effect on AVR. too bad!
+        if likely(block.do_transmit_label) {
+            // afaict this has genuinely no effect on AVR. too bad!
             packet[packet_index] = block.label.to_be();
             packet_index += 1;
         }
 
         let _blockdata = block.data.get_data();
 
-        packet[packet_index..(packet_index + block.data.len() as usize)].copy_from_slice(_blockdata);
+        packet[packet_index..(packet_index + block.data.len() as usize)]
+            .copy_from_slice(_blockdata);
         packet_index += block.data.len() as usize;
         //packet_index += block.length as usize;
-        
+
         packet[packet_index] = BLOCK_DELIMITER.to_le_bytes()[0];
         packet[packet_index + 1] = BLOCK_DELIMITER.to_le_bytes()[1];
         packet_index += 2;
         i += 1;
     }
-    
+
     packet
 }
 
@@ -222,19 +225,18 @@ trait CoordinateAttributes {
     fn seconds(&self) -> f32;
 }
 
-
 impl CoordinateAttributes for f32 {
     fn degrees(&self) -> f32 {
-        unsafe{floorf32(*self)}
+        unsafe { floorf32(*self) }
     }
     fn decimal_minutes(&self) -> f32 {
-        unsafe{fmul_fast(fsub_fast(*self, self.degrees()), 60.0)}
+        unsafe { fmul_fast(fsub_fast(*self, self.degrees()), 60.0) }
     }
     fn minutes(&self) -> f32 {
-        unsafe{floorf32(self.decimal_minutes())}
+        unsafe { floorf32(self.decimal_minutes()) }
     }
     fn seconds(&self) -> f32 {
-        unsafe{fmul_fast(fsub_fast(self.decimal_minutes(), self.minutes()), 60.0)}
+        unsafe { fmul_fast(fsub_fast(self.decimal_minutes(), self.minutes()), 60.0) }
     }
 }
 
@@ -244,13 +246,12 @@ pub fn find_packet_similarities() -> (BareMessage, BareMessage) {
     // since the block sizes, labels, and positions are always constant, this gives us some help.
 
     // TODO: figure out how to make this function constant, so it all can be constant. there's no reason this can't be calculated at compile time
-    let bare_packet = construct_packet(construct_blocks( &MIN_BLOCKSTACKDATA ));
+    let bare_packet = construct_packet(construct_blocks(&MIN_BLOCKSTACKDATA));
 
     debug_assert_eq!(bare_packet.len(), BARE_MESSAGE_LENGTH_BYTES);
     if bare_packet.len() != BARE_MESSAGE_LENGTH_BYTES {
         unreachable!()
     }
-    
 
     // we can't rely on our delimiters or labels solely to split up the packet, as data may interfere with that
     // however, in this bare packet, this won't happen.
@@ -275,14 +276,14 @@ pub fn find_packet_similarities() -> (BareMessage, BareMessage) {
         _mask_max = bare_packet[i] ^ _max_example_packet[i];
         _mask_min = bare_packet[i] ^ _min_example_packet[i];
 
-        packet_bitmask[i] = _mask_max &! _mask_min;
+        packet_bitmask[i] = _mask_max & !_mask_min;
     }
 
     (packet_bitmask, bare_packet)
-
 }
 
-pub fn decode_packet(_packet: TotalMessage, _known_erasures: &[u8]) -> BareMessage { // TODO: this entire function needs to be completely refactored
+pub fn decode_packet(_packet: TotalMessage, _known_erasures: &[u8]) -> BareMessage {
+    // TODO: this entire function needs to be completely refactored
 
     let mut _packet_fec: [u8; FEC_EXTRA_BYTES] = [0u8; FEC_EXTRA_BYTES];
     let mut _packet_data: BareMessage = [0u8; BARE_MESSAGE_LENGTH_BYTES];
@@ -296,15 +297,10 @@ pub fn decode_packet(_packet: TotalMessage, _known_erasures: &[u8]) -> BareMessa
     if (_packet_data.len() + _packet_fec.len()) != _packet.len() {
         unreachable!()
     }
-    
-    
-    
 
     let (_packet_bitmask, _bare_packet): (BareMessage, BareMessage) = find_packet_similarities();
-    
 
     for i in 0..BARE_MESSAGE_LENGTH_BYTES {
-        
         _mask = _packet_bitmask[i];
 
         match _mask {
@@ -312,13 +308,11 @@ pub fn decode_packet(_packet: TotalMessage, _known_erasures: &[u8]) -> BareMessa
             _ => _reconstructed_array[i] = _packet[i],
         }
     }
-    
-
-
 
     let mut _packet_data_full: TotalMessage = [0u8; TOTAL_MESSAGE_LENGTH_BYTES];
     _packet_data_full[0..BARE_MESSAGE_LENGTH_BYTES].clone_from_slice(&_reconstructed_array);
-    _packet_data_full[BARE_MESSAGE_LENGTH_BYTES..TOTAL_MESSAGE_LENGTH_BYTES].clone_from_slice(&_packet[BARE_MESSAGE_LENGTH_BYTES..TOTAL_MESSAGE_LENGTH_BYTES]);
+    _packet_data_full[BARE_MESSAGE_LENGTH_BYTES..TOTAL_MESSAGE_LENGTH_BYTES]
+        .clone_from_slice(&_packet[BARE_MESSAGE_LENGTH_BYTES..TOTAL_MESSAGE_LENGTH_BYTES]);
 
     // now we theoretically have packet that we have reconstructed as well as we can.
 
@@ -326,13 +320,15 @@ pub fn decode_packet(_packet: TotalMessage, _known_erasures: &[u8]) -> BareMessa
         _packet_data_full[i] = _reconstructed_array[i];
     }
 
-    let recovery_buffer = Decoder::new(FEC_EXTRA_BYTES).correct(&mut _packet_data_full, Some(_known_erasures)).unwrap();
+    let recovery_buffer = Decoder::new(FEC_EXTRA_BYTES)
+        .correct(&mut _packet_data_full, Some(_known_erasures))
+        .unwrap();
     let recovered = recovery_buffer.data();
 
     let mut recovered_packet: BareMessage = [0u8; BARE_MESSAGE_LENGTH_BYTES];
 
     for i in 0..recovered.len() {
-    recovered_packet[i] = recovered[i];
+        recovered_packet[i] = recovered[i];
     }
 
     recovered_packet
@@ -341,16 +337,18 @@ pub fn decode_packet(_packet: TotalMessage, _known_erasures: &[u8]) -> BareMessa
     // let _packet_values = DecodedDataPacket { altitude: 0.0f32, voltage: 0.0f32, temperature: 0.0f32, latitude: 0.0f32, longitude: 0.0f32 };
 
     // _packet_values
-
 }
-
 
 pub fn values_from_packet(_packet: BareMessage) -> PacketDecodedData {
     let mut packet_decoded_data: PacketDecodedData = [0.0f32; BLOCK_STACK_DATA_COUNT];
     for i in 0..BLOCK_IDENT_STACK.len() {
-        packet_decoded_data[i] = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[i].beginning_location..BLOCK_IDENT_STACK[i].end_location].try_into().unwrap());
+        packet_decoded_data[i] = f32::from_be_bytes(
+            _packet[BLOCK_IDENT_STACK[i].beginning_location..BLOCK_IDENT_STACK[i].end_location]
+                .try_into()
+                .unwrap(),
+        );
     }
- 
+
     // TODO: this can be done with a for loop based on parameters
     // let _altitude: f32 = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[0].beginning_location..BLOCK_IDENT_STACK[0].end_location].try_into().unwrap());
     // let _voltage: f32 = f32::from_be_bytes(_packet[BLOCK_IDENT_STACK[1].beginning_location..BLOCK_IDENT_STACK[1].end_location].try_into().unwrap());
@@ -360,7 +358,6 @@ pub fn values_from_packet(_packet: BareMessage) -> PacketDecodedData {
 
     packet_decoded_data
 }
-
 
 // fn decode_packet_test() -> BareMessage {
 
@@ -385,7 +382,7 @@ pub fn values_from_packet(_packet: BareMessage) -> PacketDecodedData {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_decimal_to_dms() {
         static DECIMAL_DEGREES: f32 = 123.4567;
