@@ -57,7 +57,6 @@ impl FloatMap<f32, u32> {
     }
 }
 
-
 const U24_OUTPUT_START: u32 = 0;
 const U24_OUTPUT_END: u32 = 2u32.pow(24) - 1u32;
 const LAT_INPUT_START: isize = -90;
@@ -70,7 +69,7 @@ pub const fn make_floatmap_f32(
     _input_range: Range<isize>,
     _output_range: Range<u32>,
 ) -> FloatMap<f32, u32> {
-    let _slope64: f64 = (_output_range.start - _output_range.end) as f64
+    let _slope64: f64 = (_output_range.end - _output_range.start) as f64
         / (_input_range.end - _input_range.start) as f64;
     FloatMap {
         slope32: _slope64 as f32,
@@ -81,9 +80,15 @@ pub const fn make_floatmap_f32(
 }
 
 /// Constant FloatMap data for converting an [f32] latitude into a [U24Arr]
-const LATITUDE_MAP: FloatMap<f32, u32> = make_floatmap_f32(LAT_INPUT_START..LAT_INPUT_END, U24_OUTPUT_START..U24_OUTPUT_END);
+const LATITUDE_MAP: FloatMap<f32, u32> = make_floatmap_f32(
+    LAT_INPUT_START..LAT_INPUT_END,
+    U24_OUTPUT_START..U24_OUTPUT_END,
+);
 /// Constant FloatMap data for converting an [f32] longitude into a [U24Arr]
-const LONGITUDE_MAP: FloatMap<f32, u32> = make_floatmap_f32(LONG_INPUT_START..LONG_INPUT_END, U24_OUTPUT_START..U24_OUTPUT_END);
+const LONGITUDE_MAP: FloatMap<f32, u32> = make_floatmap_f32(
+    LONG_INPUT_START..LONG_INPUT_END,
+    U24_OUTPUT_START..U24_OUTPUT_END,
+);
 
 /// Converts a [U24Arr] back into a [u32]. This conversion is extremely fast; it just `and`s the input with `16777215`.
 /// https://godbolt.org/z/nch3qc13P
@@ -97,17 +102,12 @@ const fn from_24_bit(n: U24Arr) -> u32 {
     output
 }
 
-
-
 pub const fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {
     [LATITUDE_MAP.map(lat), LONGITUDE_MAP.map(long)]
 }
 
 pub const fn u48_arr_to_coords(data: U48Arr) -> (f32, f32) {
-    (
-        LATITUDE_MAP.demap(data[0]),
-        LONGITUDE_MAP.demap(data[1]),
-    )
+    (LATITUDE_MAP.demap(data[0]), LONGITUDE_MAP.demap(data[1]))
 }
 
 pub type StatusBools = [bool; 8];
@@ -194,6 +194,8 @@ mod tests {
         [true, true, false, true, true, true, true, false],
         [false, true, false, false, false, false, false, false],
     ];
+    const LAT: f32 = 38.897957;
+    const LONG: f32 = -77.036560;
     use super::*;
 
     #[test]
@@ -204,6 +206,47 @@ mod tests {
             ATTEMPT, EXPECTED_OUTPUT,
             "\nexpected: [{:08b}, {:08b}]\nfound:    [{:08b}, {:08b}]",
             EXPECTED_OUTPUT[0], EXPECTED_OUTPUT[1], ATTEMPT[0], ATTEMPT[1]
+        );
+    }
+
+    #[test]
+    fn check_floatmap_accuracy() {
+        const MAPPED_LAT: U24Arr = LATITUDE_MAP.map(LAT);
+        const MAPPED_LONG: U24Arr = LONGITUDE_MAP.map(LONG);
+        const RCV_LAT: f32 = LATITUDE_MAP.demap(MAPPED_LAT);
+        const RCV_LONG: f32 = LONGITUDE_MAP.demap(MAPPED_LONG);
+
+        let lat_delta: f32 = f32::abs(LAT - RCV_LAT);
+        let long_delta: f32 = f32::abs(LONG - RCV_LONG);
+
+        assert!(
+            lat_delta < 0.00001,
+            "Latitude imprecision error, delta is {}",
+            lat_delta
+        );
+        assert!(
+            long_delta < 0.00001,
+            "Longitude imprecision error, delta is {}",
+            long_delta
+        );
+    }
+
+    #[test]
+    fn test_lat_long_packing() {
+        const MAPPED_COORDS: U48Arr = coords_to_u48_arr(LAT, LONG);
+        const DEMAPPED_COORDS: (f32, f32) = u48_arr_to_coords(MAPPED_COORDS);
+        let lat_delta: f32 = f32::abs(LAT - DEMAPPED_COORDS.0);
+        let long_delta: f32 = f32::abs(LONG - DEMAPPED_COORDS.1);
+
+        assert!(
+            lat_delta < 0.00001,
+            "Latitude imprecision error, delta is {}",
+            lat_delta
+        );
+        assert!(
+            long_delta < 0.00001,
+            "Longitude imprecision error, delta is {}",
+            long_delta
         );
     }
 }
