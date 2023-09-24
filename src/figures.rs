@@ -3,12 +3,31 @@ use core::ops::Range;
 use crate::parameters::{U24Arr, U48Arr};
 
 /// Returns byte `n` from `number`.
+/// This function is designed for use in [to_24_bit], where it's [never actually called](https://godbolt.org/z/z7q1nqG99).
+/// Instead, it largely exists in Rust logic.
+#[inline]
 const fn get_byte(n: usize, number: u32) -> u8 {
     (number >> (8 * n)) as u8
 }
 
+/// Converts a [u32] into a [U24Arr]. This conversion has **zero overhead**. Just like [get_byte], it's [never actually called](https://godbolt.org/z/z7q1nqG99).
 const fn to_24_bit(n: u32) -> U24Arr {
     [get_byte(0, n), get_byte(1, n), get_byte(2, n)]
+}
+
+/// Converts a [U24Arr] back into a [u32]. This conversion is extremely fast; it just `and`s the input with `2^24 - 1`, which effectively prepends a byte of zeroes to the beginning, yielding a [u32].
+/// This is why I deal with 24-bit data in this way: conversion is extremely fast. This function is 2 instrctions, a `mov` and an `and`. That's it.
+/// https://godbolt.org/z/nch3qc13P
+/// In addition to this, and in a similar vein to [to_24_bit], when this code is called in a function, nothing will actually happen, as the compiler will just change the type of the data in a
+/// 32-bit register and call it a day.
+const fn from_24_bit(n: U24Arr) -> u32 {
+    let mut output: u32 = 0;
+    let mut i: usize = 0;
+    while i < n.len() {
+        output = output | ((n[i] as u32) << 8 * i);
+        i += 1;
+    }
+    output
 }
 
 pub struct FloatMap<TI, TO> {
@@ -20,9 +39,9 @@ pub struct FloatMap<TI, TO> {
 
 impl FloatMap<f32, u32> {
     /// Constructs a new [FloatMap] provided:
-    /// 
+    ///
     /// An input [Range], where [Range::start] is the smallest (inclusive) value that will be given to be mapped and [Range::end] is the largest (inclusive).
-    /// 
+    ///
     /// An output [Range], where [Range::start] is the output value for that smallest input, and [Range::end] is the output value for that largest input.
     pub const fn new(_input_range: Range<f32>, _output_range: Range<u32>) -> Self {
         let _slope64: f64 = (_output_range.start - _output_range.end) as f64
@@ -48,7 +67,7 @@ impl FloatMap<f32, u32> {
         debug_assert!(output <= 2u32.pow(24));
         to_24_bit(output)
     }
-    /// Undoes the mapping preformed by [map]
+    /// Undoes the mapping preformed by map
     pub const fn demap(&self, input: U24Arr) -> f32 {
         ((-(self.output_range.start as f64)
             + (self.slope64 * (self.input_range.start as f64))
@@ -64,7 +83,7 @@ const LAT_INPUT_END: isize = 90;
 const LONG_INPUT_START: isize = -180;
 const LONG_INPUT_END: isize = 180;
 
-/// Constructs our constant [LATITUDE_MAP] and [LONGITUDE_MAP].
+/// Constructs [FloatMap]s given input and output [Range]s.
 pub const fn make_floatmap_f32(
     _input_range: Range<isize>,
     _output_range: Range<u32>,
@@ -89,18 +108,6 @@ const LONGITUDE_MAP: FloatMap<f32, u32> = make_floatmap_f32(
     LONG_INPUT_START..LONG_INPUT_END,
     U24_OUTPUT_START..U24_OUTPUT_END,
 );
-
-/// Converts a [U24Arr] back into a [u32]. This conversion is extremely fast; it just `and`s the input with `16777215`.
-/// https://godbolt.org/z/nch3qc13P
-const fn from_24_bit(n: U24Arr) -> u32 {
-    let mut output: u32 = 0;
-    let mut i: usize = 0;
-    while i < n.len() {
-        output = output | ((n[i] as u32) << 8 * i);
-        i += 1;
-    }
-    output
-}
 
 pub const fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {
     [LATITUDE_MAP.map(lat), LONGITUDE_MAP.map(long)]
