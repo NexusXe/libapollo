@@ -19,6 +19,11 @@ pub struct FloatMap<TI, TO> {
 }
 
 impl FloatMap<f32, u32> {
+    /// Constructs a new [FloatMap] provided:
+    /// 
+    /// An input [Range], where [Range::start] is the smallest (inclusive) value that will be given to be mapped and [Range::end] is the largest (inclusive).
+    /// 
+    /// An output [Range], where [Range::start] is the output value for that smallest input, and [Range::end] is the output value for that largest input.
     pub const fn new(_input_range: Range<f32>, _output_range: Range<u32>) -> Self {
         let _slope64: f64 = (_output_range.start - _output_range.end) as f64
             / (_input_range.end - _input_range.start) as f64;
@@ -43,13 +48,15 @@ impl FloatMap<f32, u32> {
         debug_assert!(output <= 2u32.pow(24));
         to_24_bit(output)
     }
-    pub const fn demap_float(&self, input: U24Arr) -> f32 {
+    /// Undoes the mapping preformed by [map]
+    pub const fn demap(&self, input: U24Arr) -> f32 {
         ((-(self.output_range.start as f64)
             + (self.slope64 * (self.input_range.start as f64))
             + from_24_bit(input) as f64)
             / self.slope64) as f32
     }
 }
+
 
 const U24_OUTPUT_START: u32 = 0;
 const U24_OUTPUT_END: u32 = 2u32.pow(24) - 1u32;
@@ -58,40 +65,28 @@ const LAT_INPUT_END: isize = 90;
 const LONG_INPUT_START: isize = -180;
 const LONG_INPUT_END: isize = 180;
 
+/// Constructs our constant [LATITUDE_MAP] and [LONGITUDE_MAP].
 pub const fn make_floatmap_f32(
-    _input_range: Range<u32>,
-    _output_range: Range<f32>,
-) -> FloatMap<u32, f32> {
+    _input_range: Range<isize>,
+    _output_range: Range<u32>,
+) -> FloatMap<f32, u32> {
     let _slope64: f64 = (_output_range.start - _output_range.end) as f64
         / (_input_range.end - _input_range.start) as f64;
     FloatMap {
         slope32: _slope64 as f32,
         slope64: _slope64,
-        input_range: _input_range,
+        input_range: _input_range.start as f32.._input_range.end as f32,
         output_range: _output_range,
     }
 }
 
-/// Constants for mapping -90.0 to 90.0 (latitude values) to a 24-bit integer.
-const LATITUDE_MAP: FloatMap<f32, u32> = FloatMap {
-    slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64 / (LAT_INPUT_END - LAT_INPUT_START) as f64)
-        as f32,
-    slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64
-        / (LAT_INPUT_END - LAT_INPUT_START) as f64),
-    input_range: (LAT_INPUT_START as f32..LAT_INPUT_END as f32),
-    output_range: (U24_OUTPUT_START..U24_OUTPUT_END),
-};
+/// Constant FloatMap data for converting an [f32] latitude into a [U24Arr]
+const LATITUDE_MAP: FloatMap<f32, u32> = make_floatmap_f32(LAT_INPUT_START..LAT_INPUT_END, U24_OUTPUT_START..U24_OUTPUT_END);
+/// Constant FloatMap data for converting an [f32] longitude into a [U24Arr]
+const LONGITUDE_MAP: FloatMap<f32, u32> = make_floatmap_f32(LONG_INPUT_START..LONG_INPUT_END, U24_OUTPUT_START..U24_OUTPUT_END);
 
-/// Constants for mapping -180.0 to 180.0 (longitude values) to a 24-bit integer.
-const LONGITUDE_MAP: FloatMap<f32, u32> = FloatMap {
-    slope32: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64
-        / (LONG_INPUT_END - LONG_INPUT_START) as f64) as f32,
-    slope64: ((U24_OUTPUT_END - U24_OUTPUT_START) as f64
-        / (LONG_INPUT_END - LONG_INPUT_START) as f64),
-    input_range: (LONG_INPUT_START as f32..LONG_INPUT_END as f32),
-    output_range: (U24_OUTPUT_START..U24_OUTPUT_END),
-};
-
+/// Converts a [U24Arr] back into a [u32]. This conversion is extremely fast; it just `and`s the input with `16777215`.
+/// https://godbolt.org/z/nch3qc13P
 const fn from_24_bit(n: U24Arr) -> u32 {
     let mut output: u32 = 0;
     let mut i: usize = 0;
@@ -102,12 +97,7 @@ const fn from_24_bit(n: U24Arr) -> u32 {
     output
 }
 
-const fn demap_float(_floatmap: FloatMap<f32, u32>, input: U24Arr) -> f32 {
-    ((-(_floatmap.output_range.start as f64)
-        + (_floatmap.slope64 * (_floatmap.input_range.start as f64))
-        + from_24_bit(input) as f64)
-        / _floatmap.slope64) as f32
-}
+
 
 pub const fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {
     [LATITUDE_MAP.map(lat), LONGITUDE_MAP.map(long)]
@@ -115,8 +105,8 @@ pub const fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {
 
 pub const fn u48_arr_to_coords(data: U48Arr) -> (f32, f32) {
     (
-        demap_float(LATITUDE_MAP, data[0]),
-        demap_float(LONGITUDE_MAP, data[1]),
+        LATITUDE_MAP.demap(data[0]),
+        LONGITUDE_MAP.demap(data[1]),
     )
 }
 
