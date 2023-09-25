@@ -15,10 +15,6 @@ const CMD_FULLDUPLEX: u8 = 5;
 const CMD_SETHARDWARE: u8 = 6;
 const CMD_RETURN: u8 = 0xFF;
 
-// macro_rules! const_iterate {
-
-// }
-
 /// It is HEAVILY advised to write your code to never use this struct.
 ///
 /// Instead, just put your data in an array and escape it with TncFrameBuffer::escape_byte
@@ -38,29 +34,34 @@ impl TncFrameBuffer {
         }
     }
 
+    /// Add a byte as-is
     pub const fn raw_add_byte(&mut self, _byte: u8) {
         self.data[self.current_len] = _byte;
         self.current_len += 1;
     }
 
+    /// Add a byte slice as-is
     pub fn raw_add_bytes(&mut self, _bytes: &[u8]) {
         for _byte in _bytes {
             self.raw_add_byte(*_byte);
         }
     }
 
+    /// Add a slice of byte slices as-is
     pub fn raw_add_slices(&mut self, _slices: &[&[u8]]) {
         for _slice in _slices {
             self.raw_add_bytes(*_slice);
         }
     }
 
+    /// Create a new frame buffer with contents left as-is
     pub fn raw_new(_data: &[u8]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
         framebuffer.raw_add_bytes(_data);
         framebuffer
     }
 
+    /// Create a new frame buffer with contents left as-is
     pub fn raw_new_from_slices(_slices: &[&[u8]]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
         for _slice in _slices {
@@ -69,6 +70,7 @@ impl TncFrameBuffer {
         framebuffer
     }
 
+    /// Escapes a single byte
     pub const fn escape_byte(_byte: u8) -> [Option<u8>; 2] {
         match _byte {
             FEND => [Some(FESC), Some(TFEND)],
@@ -77,6 +79,7 @@ impl TncFrameBuffer {
         }
     }
 
+    /// Escape a byte slice
     pub const fn escape_bytes<const S: usize>(_bytes: [u8; S]) -> [[Option<u8>; 2]; S] {
         let mut i: usize = 0;
         let mut output_array = [[None; 2]; S];
@@ -87,6 +90,7 @@ impl TncFrameBuffer {
         output_array
     }
 
+    /// Add a byte, escaping if needed
     pub fn escaping_add_byte(&mut self, _byte: u8) {
         for _byteoption in Self::escape_byte(_byte) {
             if _byteoption.is_some() {
@@ -95,24 +99,28 @@ impl TncFrameBuffer {
         }
     }
 
+    /// Add a byte slice, escaping if needed
     pub fn escaping_add_bytes(&mut self, _bytes: &[u8]) {
         for _byte in _bytes {
             self.escaping_add_byte(*_byte);
         }
     }
 
+    /// Add a slice of byte slices, escaping if needed
     pub fn escaping_add_slices(&mut self, _slices: &[&[u8]]) {
         for _slice in _slices {
             self.escaping_add_bytes(*_slice);
         }
     }
 
+    /// Create a new buffer with contents, escaping if needed
     pub fn escaping_new(_data: &[u8]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
         framebuffer.escaping_add_bytes(_data);
         framebuffer
     }
 
+    /// Create a new buffer with contents, escaping if needed
     pub fn escaping_new_from_slices(_slices: &[&[u8]]) -> Self {
         let mut framebuffer = TncFrameBuffer::empty_new();
         for _slice in _slices {
@@ -131,6 +139,7 @@ impl TncFrameBuffer {
         }
     }
 
+    /// Convert an escaped byte back into its original form
     const fn convert_escaped_byte(_data: u8) -> u8 {
         match _data {
             TFEND => FEND,
@@ -176,7 +185,7 @@ impl TncFrameBuffer {
         true
     }
 
-    // Creates a new TNC frame with delimiting and FESCs.
+    /// Creates a new TNC frame with delimiting and FESCs.
     pub fn new_full_tnc_frame(_label: u8, _data: &[u8]) -> Self {
         let mut framebuffer = Self::raw_new(&[FESC]);
 
@@ -196,7 +205,7 @@ impl TncFrameBuffer {
 }
 
 impl From<(&[u8], bool)> for TncFrameBuffer {
-    /// Pass in a data slice and a bool wherin `true` delimits the slice and `false` does not
+    /// Converts a byte slice into a [TncFrameBuffer], wherin `true` delimits the slice and `false` does not.
     fn from(starting_tuple: (&[u8], bool)) -> Self {
         let _data = starting_tuple.0;
         let do_escape = starting_tuple.1;
@@ -209,6 +218,7 @@ impl From<(&[u8], bool)> for TncFrameBuffer {
 }
 
 impl From<&[u8]> for TncFrameBuffer {
+    /// Convert a byte slice into a [TncFrameBuffer].
     /// By default, this conversion does not escape.
     /// Use `TncFrameBuffer::from( (&[u8], true) )` to escape.
     fn from(_data: &[u8]) -> Self {
