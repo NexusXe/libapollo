@@ -195,6 +195,26 @@ pub const fn make_status_data(
     ]
 }
 
+/// Unpacks a 4-byte block into its 24-bit number (represented as a [U24Arr]) and its [StatusBools].
+pub const fn unpack_status_data(status_block: [u8; 4]) -> (U24Arr, StatusBools) {
+    let mut data: [u8; 3] = [0u8; 3];
+    data[0] = status_block[0];
+    data[1] = status_block[1];
+    data[2] = status_block[2];
+
+    (data, unpack_bools(status_block[3]))
+}
+
+/// Unpacks the packed latitude and longitude blocks into their recovered floating-point
+/// values and their packed flags
+pub const fn unpack_status_blocks(status_blocks: [[u8; 4]; 2]) -> [(f32, StatusBools); 2] {
+    let (lat, status_1): (U24Arr, StatusBools) = unpack_status_data(status_blocks[0]);
+    let (long, status_2 ): (U24Arr, StatusBools) = unpack_status_data(status_blocks[1]);
+
+    [(LATITUDE_MAP.demap(lat), status_1), (LONGITUDE_MAP.demap(long), status_2)]
+}
+
+
 #[cfg(test)]
 mod tests {
     const EXAMPLE_STATUSES: [StatusBools; 2] = [

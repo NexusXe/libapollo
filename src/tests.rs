@@ -1,5 +1,4 @@
 extern crate std;
-use crate::telemetry::BlockStackData;
 
 use super::*;
 
@@ -12,8 +11,7 @@ fn make_packet() {
     let _latitude = 69.1337f32.to_be_bytes();
     let _longitude = 69.420f32.to_be_bytes();
 
-    let _blocks = telemetry::construct_blocks(&BlockStackData {
-        data_arr: [
+    let _blocks = telemetry::construct_blocks(&[
             _status,
             _altitude,
             _voltage,
@@ -21,7 +19,7 @@ fn make_packet() {
             _latitude,
             _longitude,
         ],
-    });
+    );
 
     let _packet = telemetry::construct_packet(_blocks);
     telemetry::encode_packet(&_packet);

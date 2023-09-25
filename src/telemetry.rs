@@ -84,11 +84,7 @@ impl Block {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct BlockStackData {
-    pub data_arr: [[u8; 4]; BLOCK_STACK_DATA_COUNT],
-}
+pub type BlockStackData = [[u8; 4]; BLOCK_STACK_DATA_COUNT];
 
 pub type PacketDecodedData = [f32; BLOCK_STACK_DATA_COUNT];
 
@@ -105,14 +101,12 @@ impl BlockStack {
     }
 }
 
-const MAX_BLOCKSTACKDATA: BlockStackData = BlockStackData {
-    data_arr: [[0xFF; 4]; BLOCK_STACK_DATA_COUNT],
-};
+const MAX_BLOCKSTACKDATA: BlockStackData = [[0xFF; 4]; BLOCK_STACK_DATA_COUNT];
+
 const _MAX_BLOCKSTACK: BlockStack = construct_blocks(&MAX_BLOCKSTACKDATA);
-// const MAX_PACKET: [u8; BARE_MESSAGE_LENGTH_BYTES] = construct_packet(MAX_BLOCKSTACK);
-const MIN_BLOCKSTACKDATA: BlockStackData = BlockStackData {
-    data_arr: [[0x00; 4]; BLOCK_STACK_DATA_COUNT],
-};
+
+const MIN_BLOCKSTACKDATA: BlockStackData = [[0x00; 4]; BLOCK_STACK_DATA_COUNT];
+
 const _MIN_BLOCKSTACK: BlockStack = construct_blocks(&MIN_BLOCKSTACKDATA);
 
 /// Given a reference to a [BlockStackData] object, construct a [BlockStack] that is
@@ -131,37 +125,37 @@ pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
     data_location += 1;
     let _packed_status_block = Block {
         label: FIRST_BLOCK_LABEL + data_location as u8,
-        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
+        data: BlockData::DynData(Some(_data[data_location - 1])),
         do_transmit_label: true,
     };
     data_location += 1;
     let _altitude_block = Block {
         label: FIRST_BLOCK_LABEL + data_location as u8,
-        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
+        data: BlockData::DynData(Some(_data[data_location - 1])),
         do_transmit_label: true,
     };
     data_location += 1;
     let _voltage_block = Block {
         label: FIRST_BLOCK_LABEL + data_location as u8,
-        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
+        data: BlockData::DynData(Some(_data[data_location - 1])),
         do_transmit_label: true,
     };
     data_location += 1;
     let _temperature_block = Block {
         label: FIRST_BLOCK_LABEL + data_location as u8,
-        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
+        data: BlockData::DynData(Some(_data[data_location - 1])),
         do_transmit_label: true,
     };
     data_location += 1;
     let _latitude_block = Block {
         label: FIRST_BLOCK_LABEL + data_location as u8,
-        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
+        data: BlockData::DynData(Some(_data[data_location - 1])),
         do_transmit_label: true,
     };
     data_location += 1;
     let _longitude_block = Block {
         label: FIRST_BLOCK_LABEL + data_location as u8,
-        data: BlockData::DynData(Some(_data.data_arr[data_location - 1])),
+        data: BlockData::DynData(Some(_data[data_location - 1])),
         do_transmit_label: true,
     };
     const _END_HEADER_BLOCK: Block = Block {
