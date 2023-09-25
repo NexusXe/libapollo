@@ -51,7 +51,7 @@ impl BlockData {
             BlockData::StaticData(_) => false,
         }
     }
-    
+
     /// Returns the contained data as a `&[u8]`, regardless of variant.
     pub const fn get_data(&self) -> &[u8] {
         match self {
@@ -72,7 +72,7 @@ pub struct Block {
 impl Block {
     /// Returns what the length of the block will be
     /// after being processed into a packet.
-    /// 
+    ///
     /// len() = [self].label.len() (if do_transmit_label is true) + [self].data.len() + [BLOCK_DELIMITER_SIZE]
     pub fn len(&self) -> usize {
         (if likely(self.do_transmit_label) {
@@ -117,7 +117,7 @@ const _MIN_BLOCKSTACK: BlockStack = construct_blocks(&MIN_BLOCKSTACKDATA);
 
 /// Given a reference to a [BlockStackData] object, construct a [BlockStack] that is
 /// ready to be constructed into a packet.
-/// 
+///
 /// TODO: make this dynamic
 pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
     let mut data_location: usize = 0;
@@ -222,7 +222,6 @@ pub const fn construct_packet(_blockstack: BlockStack) -> BareMessage {
 
 /// Encodes the given packet using the reed_solomon crate. Returns the encoded packet.
 pub fn encode_packet(_bare_packet: &BareMessage) -> TotalMessage {
-    
     let enc = Encoder::new(FEC_EXTRA_BYTES);
     let _encoded_packet = enc.encode(&_bare_packet[..]);
     _encoded_packet[..].try_into().unwrap()
@@ -262,7 +261,7 @@ impl CoordinateAttributes for f32 {
 /// As a framework for decoding a packet, let's base everything off of
 /// the same code that is generating the packets.
 /// since the block sizes, labels, and positions are always constant, this gives us some help.
-/// 
+///
 /// TODO: figure out how to make this function constant, so it all can be constant. there's no reason this can't be calculated at compile time
 pub fn find_packet_similarities() -> (BareMessage, BareMessage) {
     let bare_packet = construct_packet(construct_blocks(&MIN_BLOCKSTACKDATA));

@@ -22,7 +22,6 @@
 #![feature(const_fn_floating_point_arithmetic)]
 #![allow(internal_features)]
 
-
 /// Functions relating to APRS and TNC function.
 pub mod figures;
 

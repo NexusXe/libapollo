@@ -120,6 +120,14 @@ pub const fn u48_arr_to_coords(data: U48Arr) -> (f32, f32) {
 
 pub type StatusBools = [bool; 8];
 
+/// Packs 8 bools into a u8, where the first bit in the input is the least-significant
+/// bit in the output u8. For example, a bool array of `[TFFFFFTF]` would result in a
+/// u8 whose binary representation (LE) would be `0b01000001`.
+///
+/// The fact that this could potentially be "backwards" makes it much faster at runtime.
+///
+/// TODO: Ensure portability, especially when the transmitter and receiver differ in
+/// endianness.
 pub const fn pack_bools_to_byte(bools: StatusBools) -> u8 {
     let mut i: usize = 0;
     let mut packed_bools: u8 = 0b00000000;
