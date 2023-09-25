@@ -22,24 +22,20 @@
 #![feature(const_fn_floating_point_arithmetic)]
 #![allow(internal_features)]
 
+
+/// Functions relating to APRS and TNC function.
 pub mod figures;
+
+/// Constants used across the project.
 pub mod parameters;
+
+/// Code for generating, encoding, decoding, and handling packets.
 pub mod telemetry;
 
 use crate::telemetry::{construct_blocks, construct_packet, encode_packet, BlockStackData};
 use parameters::*;
 
 pub fn generate_packet(_blockstackdata: BlockStackData) -> TotalMessage {
-    // _altitude = 1337.69f32.to_be_bytes();
-    // _voltage = 420.69f32.to_be_bytes();
-    // _temperature = 420.1337f32.to_be_bytes();
-    // _latitude = 69.1337f32.to_be_bytes();
-    // _longitude = 69.420f32.to_be_bytes();
-
-    // _latitude = 41.1499498f32.to_be_bytes();
-    // _longitude = (-87.2426919f32).to_be_bytes();
-
-    //let _blocks: BlockStack = telemetry::construct_blocks(&ALTITUDE, &VOLTAGE, &TEMPERATURE, &LATITUDE, &LONGITUDE);
     let _blocks = construct_blocks(&_blockstackdata);
     let _packet: BareMessage = construct_packet(_blocks);
 

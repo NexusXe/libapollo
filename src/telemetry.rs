@@ -6,6 +6,9 @@ use crate::{generate_packet, generate_packet_no_fec};
 
 use reed_solomon::{Decoder, Encoder};
 
+/// Makes a blank packet (with valid FEC) of size [TotalMessage] that is all-zeroes if `false` and all-ones if `true`.
+/// If a packet without FEC is desired or can be used, [make_packet_skeleton_nofec] will generate such a packet (sans
+/// FEC) at compile-time.
 pub fn make_packet_skeleton(_type: bool) -> TotalMessage {
     let _blockstackdata = match _type {
         true => MAX_BLOCKSTACKDATA,
@@ -14,7 +17,9 @@ pub fn make_packet_skeleton(_type: bool) -> TotalMessage {
     generate_packet(_blockstackdata)
 }
 
-const fn make_packet_skeleton_nofec(_type: bool) -> BareMessage {
+/// Like [make_packet_skeleton], generates an all-zeroes if `false` or all-ones if `true` [BareMessage] (without FEC).
+/// Because it does not have FEC, this packet can be generated at compile-time.
+pub const fn make_packet_skeleton_nofec(_type: bool) -> BareMessage {
     let _blockstackdata = match _type {
         true => MAX_BLOCKSTACKDATA,
         false => MIN_BLOCKSTACKDATA,
@@ -30,6 +35,7 @@ pub enum BlockData {
 }
 
 impl BlockData {
+    /// Returns the length of the **data contained**.
     pub fn len(&self) -> usize {
         match *self {
             BlockData::DynData(data) => data.as_ref().map(|d| d.len()).unwrap_or(0),
@@ -37,13 +43,16 @@ impl BlockData {
         }
     }
 
+    /// Returns `true` if [self] is of variant type [BlockData::DynData],
+    /// otherwise returns `false` if `[self] is of variant type [BlockData::StaticData].
     pub const fn which_type(&self) -> bool {
         match *self {
             BlockData::DynData(_) => true,
             BlockData::StaticData(_) => false,
         }
     }
-
+    
+    /// Returns the contained data as a `&[u8]`, regardless of variant.
     pub const fn get_data(&self) -> &[u8] {
         match self {
             BlockData::DynData(data) => data.as_ref().unwrap(),
@@ -61,6 +70,10 @@ pub struct Block {
 }
 
 impl Block {
+    /// Returns what the length of the block will be
+    /// after being processed into a packet.
+    /// 
+    /// len() = [self].label.len() (if do_transmit_label is true) + [self].data.len() + [BLOCK_DELIMITER_SIZE]
     pub fn len(&self) -> usize {
         (if likely(self.do_transmit_label) {
             BLOCK_LABEL_SIZE
@@ -86,6 +99,7 @@ pub struct BlockStack {
 }
 
 impl BlockStack {
+    /// Returns [BARE_MESSAGE_LENGTH_BLOCKS].
     pub const fn len(&self) -> usize {
         self.blocks.len()
     }
@@ -100,7 +114,11 @@ const MIN_BLOCKSTACKDATA: BlockStackData = BlockStackData {
     data_arr: [[0x00; 4]; BLOCK_STACK_DATA_COUNT],
 };
 const _MIN_BLOCKSTACK: BlockStack = construct_blocks(&MIN_BLOCKSTACKDATA);
-// const MIN_PACKET: [u8; BARE_MESSAGE_LENGTH_BYTES] = construct_packet(MIN_BLOCKSTACK);
+
+/// Given a reference to a [BlockStackData] object, construct a [BlockStack] that is
+/// ready to be constructed into a packet.
+/// 
+/// TODO: make this dynamic
 pub const fn construct_blocks(_data: &BlockStackData) -> BlockStack {
     let mut data_location: usize = 0;
     const FIRST_BLOCK_LABEL: u8 = 128;
@@ -202,8 +220,9 @@ pub const fn construct_packet(_blockstack: BlockStack) -> BareMessage {
     packet
 }
 
-pub fn encode_packet(&_bare_packet: &BareMessage) -> TotalMessage {
-    // Encodes the given packet using the reed_solomon crate. Returns the encoded packet.
+/// Encodes the given packet using the reed_solomon crate. Returns the encoded packet.
+pub fn encode_packet(_bare_packet: &BareMessage) -> TotalMessage {
+    
     let enc = Encoder::new(FEC_EXTRA_BYTES);
     let _encoded_packet = enc.encode(&_bare_packet[..]);
     _encoded_packet[..].try_into().unwrap()
@@ -240,12 +259,12 @@ impl CoordinateAttributes for f32 {
     }
 }
 
+/// As a framework for decoding a packet, let's base everything off of
+/// the same code that is generating the packets.
+/// since the block sizes, labels, and positions are always constant, this gives us some help.
+/// 
+/// TODO: figure out how to make this function constant, so it all can be constant. there's no reason this can't be calculated at compile time
 pub fn find_packet_similarities() -> (BareMessage, BareMessage) {
-    // As a framework for decoding a packet, let's base everything off of
-    // the same code that is generating the packets.
-    // since the block sizes, labels, and positions are always constant, this gives us some help.
-
-    // TODO: figure out how to make this function constant, so it all can be constant. there's no reason this can't be calculated at compile time
     let bare_packet = construct_packet(construct_blocks(&MIN_BLOCKSTACKDATA));
 
     debug_assert_eq!(bare_packet.len(), BARE_MESSAGE_LENGTH_BYTES);

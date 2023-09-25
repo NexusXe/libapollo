@@ -68,7 +68,7 @@ impl FloatMap<f32, u32> {
         debug_assert!(output <= 2u32.pow(24));
         to_24_bit(output)
     }
-    /// Undoes the mapping preformed by map
+    /// Undoes the mapping preformed by map.
     pub const fn demap(&self, input: U24Arr) -> f32 {
         ((-(self.output_range.start as f64)
             + (self.slope64 * (self.input_range.start as f64))
@@ -165,10 +165,15 @@ pub const fn unpack_bools(packed_bools: u8) -> StatusBools {
     bools
 }
 
+/// Packs a [U24Arr] and a packed status [u8] into a [BlockData::DynData] object,
+/// ready to be incorporated into a [crate::telemetry::Block]
 const fn make_packed_status(data: U24Arr, status: u8) -> BlockData {
     BlockData::DynData(Some([data[0], data[1], data[2], status]))
 }
 
+/// Provided a latitude [f32], longitude [f32], and 2 [StatusBools] arrays,
+/// make two [BlockData::DynData]s that are ready to be incorporated into a
+/// [crate::telemetry::Block].
 pub const fn make_status_data(
     lat: f32,
     long: f32,
