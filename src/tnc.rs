@@ -49,6 +49,26 @@ impl<'a> Message<'a> {
     }
 }
 
+pub struct DelmitingIterator { 
+    byte: u8,
+    position: bool,
+}
+
+impl DelmitingIterator {
+    pub const fn new(_byte: u8) -> Self {
+        Self {
+            byte: _byte,
+            position: false,
+        }
+    }
+}
+
+// impl Iterator for DelmitingIterator {
+//     type Item = u8;
+
+
+// }
+
 /// It is HEAVILY advised to write your code to never use this struct.
 ///
 /// Instead, just put your data in an array and escape it with TncFrameBuffer::escape_byte
