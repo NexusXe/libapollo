@@ -15,6 +15,40 @@ const CMD_FULLDUPLEX: u8 = 5;
 const CMD_SETHARDWARE: u8 = 6;
 const CMD_RETURN: u8 = 0xFF;
 
+/// Some type of TNC message. Data is stored raw and is delimited when outgoing.
+pub enum Message<'a> {
+    SendDataFrame(&'a [u8]),
+    SetTXDelay(u8),
+    SetP(u8),
+    SetSlotTime(u8),
+    SetTXTail(u8),
+    SetFullDuplex(u8), // any nonzero = true
+    SetHardware(u8),
+    Return,
+}
+
+// TODO: implement an iterator function/wrapper that delimits a [Message] as it iterates
+
+impl<'a> Message<'a> {
+    /// Returns the one-byte header for this message type. The high byte corresponds
+    /// to the message type, and the low byte corresponds to the destination port.
+    pub const fn header_byte(&self, port: u8) -> u8 {
+        debug_assert!(port < 16, "Port must be between 0 and 15");
+        let high_nibble: u8 = port << 4;
+        let low_nibble: u8 = match self {
+            Self::SendDataFrame(_) => CMD_DATAFRAME,
+            Self::SetTXDelay(_) => CMD_TXDELAY,
+            Self::SetP(_) => CMD_P,
+            Self::SetSlotTime(_) => CMD_SLOTTIME,
+            Self::SetTXTail(_) => CMD_TXDELAY,
+            Self::SetFullDuplex(_) => CMD_FULLDUPLEX,
+            Self::SetHardware(_) => CMD_SETHARDWARE,
+            Self::Return => CMD_RETURN,
+        };
+        high_nibble | low_nibble
+    }
+}
+
 /// It is HEAVILY advised to write your code to never use this struct.
 ///
 /// Instead, just put your data in an array and escape it with TncFrameBuffer::escape_byte
@@ -286,6 +320,14 @@ pub mod tnc_frame_encoder {
                 TncFrameBuffer::raw_new(&[0x11, FEND, 0x00, FEND, 0x41]);
             assert!(escaped_buffer.is_escaped());
             assert!(!unescaped_buffer.is_escaped());
+        }
+
+        #[test]
+        pub fn test_message_header() {
+            let _message = Message::SetTXDelay(24u8);
+            assert_eq!(_message.header_byte(0), CMD_TXDELAY | 0b00000000u8);
+            assert_eq!(_message.header_byte(1), CMD_TXDELAY | 0b00010000u8);
+            assert_eq!(_message.header_byte(15), CMD_TXDELAY | 0b11110000u8);
         }
     }
 }
