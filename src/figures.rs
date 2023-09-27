@@ -133,8 +133,8 @@ pub type StatusFlagsLong = u8; // battery voltage
 // second byte: battery voltage
 
 pub enum StatusFlags {
-    StatusFlagsLat,
-    StatusFlagsLong,
+    StatusFlagsLat(StatusFlagsLat),
+    StatusFlagsLong(StatusFlagsLat),
 }
 
 impl Into<u8> for StatusFlags {
@@ -142,11 +142,11 @@ impl Into<u8> for StatusFlags {
     fn into(self) -> u8 {
         let mut output: u8 = 0u8;
         match self {
-            StatusFlags::StatusFlagsLat => {
+            StatusFlags::StatusFlagsLat(_flagslat) => {
                 todo!()
             }
 
-            StatusFlags::StatusFlagsLong => {
+            StatusFlags::StatusFlagsLong(_flagslong) => {
                 todo!()
             }
         }
