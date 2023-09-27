@@ -31,36 +31,33 @@ const fn from_24_bit(n: U24Arr) -> u32 {
     output
 }
 
-pub struct FloatMap<TI, TO> {
-    slope32: f32,
+pub struct FloatMap {
     slope64: f64,
-    input_range: Range<TI>,
-    output_range: Range<TO>,
+    input_range: Range<f64>,
+    output_range: Range<u32>,
 }
 
-impl FloatMap<f32, u32> {
+impl FloatMap {
     /// Constructs a new [FloatMap] provided:
     ///
     /// An input [Range], where [Range::start] is the smallest (inclusive) value that will be given to be mapped and [Range::end] is the largest (inclusive).
     ///
     /// An output [Range], where [Range::start] is the output value for that smallest input, and [Range::end] is the output value for that largest input.
-    pub const fn new(_input_range: Range<f32>, _output_range: Range<u32>) -> Self {
-        let _slope64: f64 = (_output_range.start - _output_range.end) as f64
-            / (_input_range.end - _input_range.start) as f64;
+    pub const fn new(_input_range: Range<f64>, _output_range: Range<u32>) -> Self {
         FloatMap {
-            slope32: _slope64 as f32,
-            slope64: _slope64,
+            slope64: (_output_range.start - _output_range.end) as f64
+            / (_input_range.end - _input_range.start),
             input_range: _input_range,
             output_range: _output_range,
         }
     }
     /// Maps an input float between `self.output_range[0]` and `self.output_range[1]`.
-    pub const fn map(&self, input: f32) -> U24Arr {
+    pub const fn map(&self, input: f64) -> U24Arr {
         debug_assert!(input >= self.input_range.start);
         debug_assert!(input <= self.input_range.end);
 
-        let output: u32 = (self.output_range.start as f32
-            + self.slope32 * (input - self.input_range.start as f32))
+        let output: u32 = (self.output_range.start as f64
+            + self.slope64 * (input - self.input_range.start))
             as u32;
 
         debug_assert!(output >= self.output_range.start);
@@ -69,11 +66,11 @@ impl FloatMap<f32, u32> {
         to_24_bit(output)
     }
     /// Undoes the mapping preformed by map.
-    pub const fn demap(&self, input: U24Arr) -> f32 {
-        ((-(self.output_range.start as f64)
+    pub const fn demap(&self, input: U24Arr) -> f64 {
+        (-(self.output_range.start as f64)
             + (self.slope64 * (self.input_range.start as f64))
             + from_24_bit(input) as f64)
-            / self.slope64) as f32
+            / self.slope64
     }
 }
 
@@ -85,40 +82,78 @@ const LONG_INPUT_START: isize = -180;
 const LONG_INPUT_END: isize = 180;
 
 /// Constructs [FloatMap]s given input and output [Range]s.
-pub const fn make_floatmap_f32(
+pub const fn make_floatmap_f64(
     _input_range: Range<isize>,
     _output_range: Range<u32>,
-) -> FloatMap<f32, u32> {
-    let _slope64: f64 = (_output_range.end - _output_range.start) as f64
-        / (_input_range.end - _input_range.start) as f64;
+) -> FloatMap {
     FloatMap {
-        slope32: _slope64 as f32,
-        slope64: _slope64,
-        input_range: _input_range.start as f32.._input_range.end as f32,
+        slope64: (_output_range.end - _output_range.start) as f64
+        / (_input_range.end - _input_range.start) as f64,
+        input_range: _input_range.start as f64.._input_range.end as f64,
         output_range: _output_range,
     }
 }
 
-/// Constant FloatMap data for converting an [f32] latitude into a [U24Arr]
-const LATITUDE_MAP: FloatMap<f32, u32> = make_floatmap_f32(
+/// Constant FloatMap data for converting an [f64] latitude into a [U24Arr]
+const LATITUDE_MAP: FloatMap = make_floatmap_f64(
     LAT_INPUT_START..LAT_INPUT_END,
     U24_OUTPUT_START..U24_OUTPUT_END,
 );
-/// Constant FloatMap data for converting an [f32] longitude into a [U24Arr]
-const LONGITUDE_MAP: FloatMap<f32, u32> = make_floatmap_f32(
+/// Constant FloatMap data for converting an [f64] longitude into a [U24Arr]
+const LONGITUDE_MAP: FloatMap = make_floatmap_f64(
     LONG_INPUT_START..LONG_INPUT_END,
     U24_OUTPUT_START..U24_OUTPUT_END,
 );
 
-pub const fn coords_to_u48_arr(lat: f32, long: f32) -> U48Arr {
+pub const fn coords_to_u48_arr(lat: f64, long: f64) -> U48Arr {
     [LATITUDE_MAP.map(lat), LONGITUDE_MAP.map(long)]
 }
 
-pub const fn u48_arr_to_coords(data: U48Arr) -> (f32, f32) {
+pub const fn u48_arr_to_coords(data: U48Arr) -> (f64, f64) {
     (LATITUDE_MAP.demap(data[0]), LONGITUDE_MAP.demap(data[1]))
 }
 
-pub type StatusBools = [bool; 8];
+pub type StatusBoolsArray = [bool; 8];
+
+pub struct StatusFlagsLat {
+    lat_sign: bool,
+    long_sign: bool,
+    voltage_sign: bool,
+    gps_lock: bool,
+    altitude: [bool; 4], // in hundreds of meters
+}
+
+pub type StatusFlagsLong = u8; // battery voltage
+// 0: lat sign
+// 1: long sign
+// 2: voltage sign
+// 3: gps lock state
+// 4..7: altitude in hundreds of meters
+
+// second byte: battery voltage
+
+pub enum StatusFlags {
+    StatusFlagsLat,
+    StatusFlagsLong,
+}
+
+impl Into<u8> for StatusFlags {
+    /// TODO: finish
+    fn into(self) -> u8 {
+        let mut output: u8 = 0u8;
+        match self {
+            StatusFlags::StatusFlagsLat => {
+                todo!()
+            }
+
+            StatusFlags::StatusFlagsLong => {
+                todo!()
+            }
+        }
+
+        output
+    }
+}
 
 /// Packs 8 bools into a u8, where the first bit in the input is the least-significant
 /// bit in the output u8. For example, a bool array of `[TFFFFFTF]` would result in a
@@ -128,7 +163,7 @@ pub type StatusBools = [bool; 8];
 ///
 /// TODO: Ensure portability, especially when the transmitter and receiver differ in
 /// endianness.
-pub const fn pack_bools_to_byte(bools: StatusBools) -> u8 {
+pub const fn pack_bools_to_byte(bools: StatusBoolsArray) -> u8 {
     let mut i: usize = 0;
     let mut packed_bools: u8 = 0b00000000;
     while i < bools.len() {
@@ -156,15 +191,15 @@ pub const fn pack_bools_to_byte(bools: StatusBools) -> u8 {
 /// writing the "excess" bits of the non-standard bool
 /// this causes problems, as one may expect, and is technically
 /// a memory access violation (fun!)
-pub const fn unpack_bools(packed_bools: u8) -> StatusBools {
+pub const fn unpack_bools(packed_bools: u8) -> StatusBoolsArray {
     let mut i: usize = 0;
-    let mut bools: StatusBools = [false; 8];
+    let mut bools: StatusBoolsArray = [false; 8];
     const MASK_SET: [u8; 8] = [1, 2, 4, 8, 16, 32, 64, 128];
 
     while i < 8 {
         let x = (packed_bools & MASK_SET[i]) >> i;
 
-        if (x != 0) && (x != 1) {
+        if (x != 0) & (x != 1) { // using the proper logical and can cause a SIGILL..?
             unreachable!();
         }
         bools[i] = x != 0;
@@ -179,13 +214,13 @@ const fn make_packed_status(data: U24Arr, status: u8) -> BlockData {
     BlockData::DynData(Some([data[0], data[1], data[2], status]))
 }
 
-/// Provided a latitude [f32], longitude [f32], and 2 [StatusBools] arrays,
+/// Provided a latitude [f64], longitude [f64], and 2 [StatusBools] arrays,
 /// make two [BlockData::DynData]s that are ready to be incorporated into a
 /// [crate::telemetry::Block].
 pub const fn make_status_data(
-    lat: f32,
-    long: f32,
-    status_bools: [StatusBools; 2],
+    lat: f64,
+    long: f64,
+    status_bools: [StatusBoolsArray; 2],
 ) -> [BlockData; 2] {
     let packed_coords = coords_to_u48_arr(lat, long);
 
@@ -196,7 +231,7 @@ pub const fn make_status_data(
 }
 
 /// Unpacks a 4-byte block into its 24-bit number (represented as a [U24Arr]) and its [StatusBools].
-pub const fn unpack_status_data(status_block: [u8; 4]) -> (U24Arr, StatusBools) {
+pub const fn unpack_status_data(status_block: [u8; 4]) -> (U24Arr, StatusBoolsArray) {
     let mut data: [u8; 3] = [0u8; 3];
     data[0] = status_block[0];
     data[1] = status_block[1];
@@ -207,9 +242,9 @@ pub const fn unpack_status_data(status_block: [u8; 4]) -> (U24Arr, StatusBools) 
 
 /// Unpacks the packed latitude and longitude blocks into their recovered floating-point
 /// values and their packed flags
-pub const fn unpack_status_blocks(status_blocks: [[u8; 4]; 2]) -> [(f32, StatusBools); 2] {
-    let (lat, status_1): (U24Arr, StatusBools) = unpack_status_data(status_blocks[0]);
-    let (long, status_2 ): (U24Arr, StatusBools) = unpack_status_data(status_blocks[1]);
+pub const fn unpack_status_blocks(status_blocks: [[u8; 4]; 2]) -> [(f64, StatusBoolsArray); 2] {
+    let (lat, status_1): (U24Arr, StatusBoolsArray) = unpack_status_data(status_blocks[0]);
+    let (long, status_2 ): (U24Arr, StatusBoolsArray) = unpack_status_data(status_blocks[1]);
 
     [(LATITUDE_MAP.demap(lat), status_1), (LONGITUDE_MAP.demap(long), status_2)]
 }
@@ -217,15 +252,15 @@ pub const fn unpack_status_blocks(status_blocks: [[u8; 4]; 2]) -> [(f32, StatusB
 
 #[cfg(test)]
 mod tests {
-    const EXAMPLE_STATUSES: [StatusBools; 2] = [
+    const EXAMPLE_STATUSES: [StatusBoolsArray; 2] = [
         [true, true, false, true, true, true, true, false],
         [false, true, false, false, false, false, false, false],
     ];
-    const LAT: f32 = 38.897957;
-    const LONG: f32 = -77.036560;
+    const LAT: f64 = 38.897957;
+    const LONG: f64 = -77.036560;
     use super::*;
 
-    const fn make_statuses(status_bools: [StatusBools; 2]) -> [u8; 2] {
+    const fn make_statuses(status_bools: [StatusBoolsArray; 2]) -> [u8; 2] {
         [
             pack_bools_to_byte(status_bools[0]),
             pack_bools_to_byte(status_bools[1]),
@@ -247,19 +282,19 @@ mod tests {
     fn check_floatmap_accuracy() {
         const MAPPED_LAT: U24Arr = LATITUDE_MAP.map(LAT);
         const MAPPED_LONG: U24Arr = LONGITUDE_MAP.map(LONG);
-        const RCV_LAT: f32 = LATITUDE_MAP.demap(MAPPED_LAT);
-        const RCV_LONG: f32 = LONGITUDE_MAP.demap(MAPPED_LONG);
+        const RCV_LAT: f64 = LATITUDE_MAP.demap(MAPPED_LAT);
+        const RCV_LONG: f64 = LONGITUDE_MAP.demap(MAPPED_LONG);
 
-        let lat_delta: f32 = f32::abs(LAT - RCV_LAT);
-        let long_delta: f32 = f32::abs(LONG - RCV_LONG);
+        let lat_delta: f64 = f64::abs(LAT - RCV_LAT);
+        let long_delta: f64 = f64::abs(LONG - RCV_LONG);
 
         assert!(
-            lat_delta < 0.00001,
+            lat_delta < 0.0001,
             "Latitude imprecision error, delta is {}",
             lat_delta
         );
         assert!(
-            long_delta < 0.00001,
+            long_delta < 0.0001,
             "Longitude imprecision error, delta is {}",
             long_delta
         );
@@ -268,17 +303,17 @@ mod tests {
     #[test]
     fn test_lat_long_packing() {
         const MAPPED_COORDS: U48Arr = coords_to_u48_arr(LAT, LONG);
-        const DEMAPPED_COORDS: (f32, f32) = u48_arr_to_coords(MAPPED_COORDS);
-        let lat_delta: f32 = f32::abs(LAT - DEMAPPED_COORDS.0);
-        let long_delta: f32 = f32::abs(LONG - DEMAPPED_COORDS.1);
+        const DEMAPPED_COORDS: (f64, f64) = u48_arr_to_coords(MAPPED_COORDS);
+        let lat_delta: f64 = f64::abs(LAT - DEMAPPED_COORDS.0);
+        let long_delta: f64 = f64::abs(LONG - DEMAPPED_COORDS.1);
 
         assert!(
-            lat_delta < 0.00001,
+            lat_delta < 0.0001,
             "Latitude imprecision error, delta is {}",
             lat_delta
         );
         assert!(
-            long_delta < 0.00001,
+            long_delta < 0.0001,
             "Longitude imprecision error, delta is {}",
             long_delta
         );
