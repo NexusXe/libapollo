@@ -143,7 +143,7 @@ impl Into<u8> for StatusFlags {
         let mut output: u8 = 0u8;
         match self {
             StatusFlags::StatusFlagsLat(_flags_lat) => {
-                output |= _flags_lat.lat_sign as u8;
+                output |= _flags_lat.lat_sign as u8; // TODO: condense this into one function call
                 output |= (_flags_lat.long_sign as u8) << 1;
                 output |= (_flags_lat.voltage_sign as u8) << 2;
                 output |= (_flags_lat.gps_lock as u8) << 3;
