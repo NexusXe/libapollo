@@ -142,11 +142,15 @@ impl Into<u8> for StatusFlags {
     fn into(self) -> u8 {
         let mut output: u8 = 0u8;
         match self {
-            StatusFlags::StatusFlagsLat(_flagslat) => {
-                todo!()
+            StatusFlags::StatusFlagsLat(_flags_lat) => {
+                output |= _flags_lat.lat_sign as u8;
+                output |= (_flags_lat.long_sign as u8) << 1;
+                output |= (_flags_lat.voltage_sign as u8) << 2;
+                output |= (_flags_lat.gps_lock as u8) << 3;
+                output |= pack_bools_to_byte(_flags_lat.altitude) << 4;
             }
 
-            StatusFlags::StatusFlagsLong(_flagslong) => {
+            StatusFlags::StatusFlagsLong(_flags_long) => {
                 todo!()
             }
         }
@@ -163,7 +167,7 @@ impl Into<u8> for StatusFlags {
 ///
 /// TODO: Ensure portability, especially when the transmitter and receiver differ in
 /// endianness.
-pub const fn pack_bools_to_byte(bools: StatusBoolsArray) -> u8 {
+pub const fn pack_bools_to_byte<const S: usize>(bools: [bool; S]) -> u8 {
     let mut i: usize = 0;
     let mut packed_bools: u8 = 0b00000000;
     while i < bools.len() {
