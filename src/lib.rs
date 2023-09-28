@@ -21,6 +21,8 @@
 #![feature(const_trait_impl)]
 #![feature(const_fn_floating_point_arithmetic)]
 #![allow(internal_features)]
+#![feature(const_float_classify)]
+#![feature(const_float_bits_conv)]
 
 /// Functions relating to APRS and TNC function.
 pub mod figures;

@@ -49,23 +49,22 @@ impl<'a> Message<'a> {
     }
 }
 
-pub struct DelmitingIterator { 
-    byte: u8,
-    position: bool,
-}
+// pub struct DelmitingIterator {
+//     byte: u8,
+//     position: bool,
+// }
 
-impl DelmitingIterator {
-    pub const fn new(_byte: u8) -> Self {
-        Self {
-            byte: _byte,
-            position: false,
-        }
-    }
-}
+// impl DelmitingIterator {
+//     pub const fn new(_byte: u8) -> Self {
+//         Self {
+//             byte: _byte,
+//             position: false,
+//         }
+//     }
+// }
 
 // impl Iterator for DelmitingIterator {
 //     type Item = u8;
-
 
 // }
 

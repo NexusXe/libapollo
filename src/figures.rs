@@ -5,7 +5,6 @@ use crate::telemetry::BlockData;
 
 /// Returns byte `n` from `number`.
 /// This function is designed for use in [to_24_bit], where it's [never actually called](https://godbolt.org/z/z7q1nqG99).
-/// Instead, it largely exists in Rust logic.
 #[inline]
 const fn get_byte(n: usize, number: u32) -> u8 {
     (number >> (8 * n)) as u8
@@ -46,7 +45,7 @@ impl FloatMap {
     pub const fn new(_input_range: Range<f64>, _output_range: Range<u32>) -> Self {
         FloatMap {
             slope64: (_output_range.start - _output_range.end) as f64
-            / (_input_range.end - _input_range.start),
+                / (_input_range.end - _input_range.start),
             input_range: _input_range,
             output_range: _output_range,
         }
@@ -57,8 +56,7 @@ impl FloatMap {
         debug_assert!(input <= self.input_range.end);
 
         let output: u32 = (self.output_range.start as f64
-            + self.slope64 * (input - self.input_range.start))
-            as u32;
+            + self.slope64 * (input - self.input_range.start)) as u32;
 
         debug_assert!(output >= self.output_range.start);
         debug_assert!(output <= self.output_range.end);
@@ -81,14 +79,16 @@ const LAT_INPUT_END: isize = 90;
 const LONG_INPUT_START: isize = -180;
 const LONG_INPUT_END: isize = 180;
 
+const ULAT_INPUT_START: isize = 0;
+const ULAT_INPUT_END: isize = 90;
+const ULONG_INPUT_START: isize = 0;
+const ULONG_INPUT_END: isize = 180;
+
 /// Constructs [FloatMap]s given input and output [Range]s.
-pub const fn make_floatmap_f64(
-    _input_range: Range<isize>,
-    _output_range: Range<u32>,
-) -> FloatMap {
+pub const fn make_floatmap_f64(_input_range: Range<isize>, _output_range: Range<u32>) -> FloatMap {
     FloatMap {
         slope64: (_output_range.end - _output_range.start) as f64
-        / (_input_range.end - _input_range.start) as f64,
+            / (_input_range.end - _input_range.start) as f64,
         input_range: _input_range.start as f64.._input_range.end as f64,
         output_range: _output_range,
     }
@@ -105,59 +105,14 @@ const LONGITUDE_MAP: FloatMap = make_floatmap_f64(
     U24_OUTPUT_START..U24_OUTPUT_END,
 );
 
-pub const fn coords_to_u48_arr(lat: f64, long: f64) -> U48Arr {
-    [LATITUDE_MAP.map(lat), LONGITUDE_MAP.map(long)]
-}
-
-pub const fn u48_arr_to_coords(data: U48Arr) -> (f64, f64) {
-    (LATITUDE_MAP.demap(data[0]), LONGITUDE_MAP.demap(data[1]))
-}
-
-pub type StatusBoolsArray = [bool; 8];
-
-pub struct StatusFlagsLat {
-    lat_sign: bool,
-    long_sign: bool,
-    voltage_sign: bool,
-    gps_lock: bool,
-    altitude: [bool; 4], // in hundreds of meters
-}
-
-pub type StatusFlagsLong = u8; // battery voltage
-// 0: lat sign
-// 1: long sign
-// 2: voltage sign
-// 3: gps lock state
-// 4..7: altitude in hundreds of meters
-
-// second byte: battery voltage
-
-pub enum StatusFlags {
-    StatusFlagsLat(StatusFlagsLat),
-    StatusFlagsLong(StatusFlagsLat),
-}
-
-impl Into<u8> for StatusFlags {
-    /// TODO: finish
-    fn into(self) -> u8 {
-        let mut output: u8 = 0u8;
-        match self {
-            StatusFlags::StatusFlagsLat(_flags_lat) => {
-                output |= _flags_lat.lat_sign as u8; // TODO: condense this into one function call
-                output |= (_flags_lat.long_sign as u8) << 1;
-                output |= (_flags_lat.voltage_sign as u8) << 2;
-                output |= (_flags_lat.gps_lock as u8) << 3;
-                output |= pack_bools_to_byte(_flags_lat.altitude) << 4;
-            }
-
-            StatusFlags::StatusFlagsLong(_flags_long) => {
-                todo!()
-            }
-        }
-
-        output
-    }
-}
+const ULAT_MAP: FloatMap = make_floatmap_f64(
+    ULAT_INPUT_START..ULAT_INPUT_END,
+    U24_OUTPUT_START..U24_OUTPUT_END,
+);
+const ULONG_MAP: FloatMap = make_floatmap_f64(
+    ULONG_INPUT_START..ULONG_INPUT_END,
+    U24_OUTPUT_START..U24_OUTPUT_END,
+);
 
 /// Packs 8 bools into a u8, where the first bit in the input is the least-significant
 /// bit in the output u8. For example, a bool array of `[TFFFFFTF]` would result in a
@@ -177,7 +132,7 @@ pub const fn pack_bools_to_byte<const S: usize>(bools: [bool; S]) -> u8 {
     packed_bools
 }
 
-/// Unpacks a u8 into a [StatusBools], rather quickly.
+/// Unpacks a u8 into a [StatusBoolsArray], rather quickly.
 ///
 /// Some implementation info:
 ///
@@ -202,8 +157,8 @@ pub const fn unpack_bools(packed_bools: u8) -> StatusBoolsArray {
 
     while i < 8 {
         let x = (packed_bools & MASK_SET[i]) >> i;
-
-        if (x != 0) & (x != 1) { // using the proper logical and can cause a SIGILL..?
+        if (x != 0) & (x != 1) {
+            // using the proper logical and can cause a SIGILL..?
             unreachable!();
         }
         bools[i] = x != 0;
@@ -212,47 +167,122 @@ pub const fn unpack_bools(packed_bools: u8) -> StatusBoolsArray {
     bools
 }
 
-/// Packs a [U24Arr] and a packed status [u8] into a [BlockData::DynData] object,
-/// ready to be incorporated into a [crate::telemetry::Block]
-const fn make_packed_status(data: U24Arr, status: u8) -> BlockData {
-    BlockData::DynData(Some([data[0], data[1], data[2], status]))
+pub type StatusBoolsArray = [bool; 8];
+
+pub struct StatusFlagsLat {
+    lat_sign: bool,
+    long_sign: bool,
+    voltage_sign: bool,
+    gps_lock: bool,
+    altitude_regime: [bool; 4],
 }
 
-/// Provided a latitude [f64], longitude [f64], and 2 [StatusBools] arrays,
-/// make two [BlockData::DynData]s that are ready to be incorporated into a
-/// [crate::telemetry::Block].
-pub const fn make_status_data(
+impl Into<u8> for StatusFlagsLat {
+    fn into(self) -> u8 {
+        0u8 | pack_bools_to_byte([
+            self.lat_sign,
+            self.long_sign,
+            self.voltage_sign,
+            self.gps_lock,
+            self.altitude_regime[0],
+            self.altitude_regime[1],
+            self.altitude_regime[2],
+            self.altitude_regime[3],
+        ])
+    }
+}
+
+impl StatusFlagsLat {
+    pub const fn new(
+        _lat_sign: bool,
+        _long_sign: bool,
+        _voltage_sign: bool,
+        _gps_lock: bool,
+        _altitude: u16,
+    ) -> StatusFlagsLat {
+        let _converted_altitude: u8 = {
+            let intermediate: u8 = (_altitude / 2000u16) as u8;
+            if intermediate > 15 {
+                15u8
+            } else {
+                intermediate
+            }
+        };
+
+        debug_assert!(_converted_altitude < 16);
+        let altitude_bools = unpack_bools(_converted_altitude);
+        Self {
+            lat_sign: _lat_sign,
+            long_sign: _long_sign,
+            voltage_sign: _voltage_sign,
+            gps_lock: _gps_lock,
+            altitude_regime: [
+                altitude_bools[0],
+                altitude_bools[1],
+                altitude_bools[2],
+                altitude_bools[3],
+            ],
+        }
+    }
+
+    pub const fn into_byte(self) -> u8 {
+        0u8 | pack_bools_to_byte([
+            self.lat_sign,
+            self.long_sign,
+            self.voltage_sign,
+            self.gps_lock,
+            self.altitude_regime[0],
+            self.altitude_regime[1],
+            self.altitude_regime[2],
+            self.altitude_regime[3],
+        ])
+    }
+}
+
+pub type StatusFlagsLong = u8; // battery voltage
+
+// pub enum StatusFlags {
+//     StatusFlagsLat(StatusFlagsLat),
+//     StatusFlagsLong(StatusFlagsLong),
+// }
+
+// impl Into<u8> for StatusFlags {
+//     fn into(self) -> u8 {
+//         match self {
+//             StatusFlags::StatusFlagsLat(_flags_lat) => _flags_lat.into(),
+//             StatusFlags::StatusFlagsLong(_flags_long) => _flags_long,
+//         }
+//     }
+// }
+
+pub const fn make_packed_pos_blocks(
     lat: f64,
     long: f64,
-    status_bools: [StatusBoolsArray; 2],
+    altitude: u16,
+    battery_voltage: f32,
+    gps_lock: bool,
 ) -> [BlockData; 2] {
-    let packed_coords = coords_to_u48_arr(lat, long);
+    #[inline]
+    const fn absfloat(x: f64) -> f64 {
+        let abs: f64 = f64::from_bits(x.to_bits() & !(1 << 63));
+        abs
+    }
 
-    [
-        make_packed_status(packed_coords[0], pack_bools_to_byte(status_bools[0])),
-        make_packed_status(packed_coords[1], pack_bools_to_byte(status_bools[1])),
-    ]
+    let lat_sign: bool = lat.is_sign_negative();
+    let long_sign: bool = long.is_sign_negative();
+    let voltage_sign: bool = battery_voltage.is_sign_negative();
+
+    let latitude_status_suffix: u8 =
+        StatusFlagsLat::new(lat_sign, long_sign, voltage_sign, gps_lock, altitude).into_byte();
+
+    let abs_lat: f64 = absfloat(lat);
+    let abs_long: f64 = absfloat(long);
+
+    let mapped_latitude = ULAT_MAP.map(lat);
+    let mapped_longitude = ULONG_MAP.map(long);
+
+    todo!();
 }
-
-/// Unpacks a 4-byte block into its 24-bit number (represented as a [U24Arr]) and its [StatusBools].
-pub const fn unpack_status_data(status_block: [u8; 4]) -> (U24Arr, StatusBoolsArray) {
-    let mut data: [u8; 3] = [0u8; 3];
-    data[0] = status_block[0];
-    data[1] = status_block[1];
-    data[2] = status_block[2];
-
-    (data, unpack_bools(status_block[3]))
-}
-
-/// Unpacks the packed latitude and longitude blocks into their recovered floating-point
-/// values and their packed flags
-pub const fn unpack_status_blocks(status_blocks: [[u8; 4]; 2]) -> [(f64, StatusBoolsArray); 2] {
-    let (lat, status_1): (U24Arr, StatusBoolsArray) = unpack_status_data(status_blocks[0]);
-    let (long, status_2 ): (U24Arr, StatusBoolsArray) = unpack_status_data(status_blocks[1]);
-
-    [(LATITUDE_MAP.demap(lat), status_1), (LONGITUDE_MAP.demap(long), status_2)]
-}
-
 
 #[cfg(test)]
 mod tests {
