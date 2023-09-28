@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use crate::parameters::{U24Arr, U48Arr};
+use crate::parameters::U24Arr;
 use crate::telemetry::BlockData;
 
 /// Returns byte `n` from `number`.
