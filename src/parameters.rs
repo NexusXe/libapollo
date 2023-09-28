@@ -43,6 +43,7 @@ pub const BLOCK_STACK_DATA_COUNT: usize = BARE_MESSAGE_LENGTH_BLOCKS - MESSAGE_N
 
 pub const F64_DATA_SIZE: usize = core::mem::size_of::<f64>();
 pub const F32_DATA_SIZE: usize = core::mem::size_of::<f32>();
+pub const I32_DATA_SIZE: usize = core::mem::size_of::<i32>();
 
 pub const BLOCK_LABEL_SIZE: usize = 1;
 
@@ -95,23 +96,37 @@ type BlockConfig = usize;
 type BlockConfigStack = [BlockConfig; BLOCK_STACK_DATA_COUNT];
 
 #[derive(Clone, Copy)]
+pub enum BlockType {
+    F32,
+    I32,
+    U32,
+    BYTES,
+    NONE,
+}
+
+type BlockTypeStack = [BlockType; BLOCK_STACK_DATA_COUNT];
+
+#[derive(Clone, Copy)]
 pub struct BlockIdent {
     pub size: BlockConfig,
+    pub block_type: BlockType,
     pub beginning_location: usize,
     pub end_location: usize,
 }
 
 pub type BlockIdentStack = [BlockIdent; BLOCK_STACK_DATA_COUNT];
 
-pub const fn calculate_block_starts_ends(blockconfigs: BlockConfigStack) -> BlockIdentStack {
+pub const fn calculate_block_starts_ends(blockconfigs: BlockConfigStack, blocktypes: BlockTypeStack) -> BlockIdentStack {
     let mut _blockidentstack: BlockIdentStack = [BlockIdent {
         size: 4,
+        block_type: BlockType::NONE,
         beginning_location: 0,
         end_location: 0,
     }; BLOCK_STACK_DATA_COUNT];
 
     _blockidentstack[0] = BlockIdent {
         size: blockconfigs[0],
+        block_type: blocktypes[0],
         beginning_location: PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE,
         end_location: PACKET_BEGINNING_OFFSET + BLOCK_LABEL_SIZE + blockconfigs[0],
     };
@@ -120,6 +135,7 @@ pub const fn calculate_block_starts_ends(blockconfigs: BlockConfigStack) -> Bloc
     while _block_in_hand < BLOCK_STACK_DATA_COUNT {
         _blockidentstack[_block_in_hand] = BlockIdent {
             size: blockconfigs[_block_in_hand],
+            block_type: blocktypes[_block_in_hand],
             beginning_location: _blockidentstack[_block_in_hand - 1].end_location
                 + BLOCK_DELIMITER_SIZE
                 + BLOCK_LABEL_SIZE,
@@ -139,11 +155,11 @@ pub type U48Arr = [U24Arr; 2];
 const U48ARR_SIZE: usize = U24ARR_SIZE * 2;
 
 const PACKED_STATUS_SIZE: usize = U48ARR_SIZE + 8usize + 8usize;
-const ALTITUDE_SIZE: usize = F32_DATA_SIZE as usize;
-const VOLTAGE_SIZE: usize = F32_DATA_SIZE as usize;
-const TEMPERATURE_SIZE: usize = F32_DATA_SIZE as usize;
-const LATITUDE_SIZE: usize = F32_DATA_SIZE as usize;
-const LONGITUDE_SIZE: usize = F32_DATA_SIZE as usize;
+const ALTITUDE_SIZE: usize = F32_DATA_SIZE;
+const VOLTAGE_SIZE: usize = F32_DATA_SIZE;
+const TEMPERATURE_SIZE: usize = F32_DATA_SIZE;
+const LATITUDE_SIZE: usize = I32_DATA_SIZE;
+const LONGITUDE_SIZE: usize = I32_DATA_SIZE;
 
 const BLOCK_CONFIG_STACK: BlockConfigStack = [
     PACKED_STATUS_SIZE,
@@ -154,9 +170,20 @@ const BLOCK_CONFIG_STACK: BlockConfigStack = [
     LONGITUDE_SIZE,
 ];
 
+// TODO: derive [BLOCK_CONFIG_STACK] from [BLOCK_TYPE_STACK]
+
+const BLOCK_TYPE_STACK: BlockTypeStack = [
+    BlockType::BYTES,
+    BlockType::I32,
+    BlockType::F32,
+    BlockType::F32,
+    BlockType::I32,
+    BlockType::I32,
+];
+
 const _: () = assert!(BLOCK_CONFIG_STACK.len() == BLOCK_STACK_DATA_COUNT);
 
-pub const BLOCK_IDENT_STACK: BlockIdentStack = calculate_block_starts_ends(BLOCK_CONFIG_STACK);
+pub const BLOCK_IDENT_STACK: BlockIdentStack = calculate_block_starts_ends(BLOCK_CONFIG_STACK, BLOCK_TYPE_STACK);
 
 // const _: () = assert!(BLOCK_IDENT_STACK[0].beginning_location == ALTITUDE_LOCATION_START);
 // const _: () = assert!(BLOCK_IDENT_STACK[0].end_location == ALTITUDE_LOCATION_END);

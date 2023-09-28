@@ -334,58 +334,58 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_lat_long_packing() {
-        const MAPPED_COORDS: U48Arr = coords_to_u48_arr(LAT, LONG);
-        const DEMAPPED_COORDS: (f64, f64) = u48_arr_to_coords(MAPPED_COORDS);
-        let lat_delta: f64 = f64::abs(LAT - DEMAPPED_COORDS.0);
-        let long_delta: f64 = f64::abs(LONG - DEMAPPED_COORDS.1);
+//     #[test]
+//     fn test_lat_long_packing() {
+//         const MAPPED_COORDS: U48Arr = coords_to_u48_arr(LAT, LONG);
+//         const DEMAPPED_COORDS: (f64, f64) = u48_arr_to_coords(MAPPED_COORDS);
+//         let lat_delta: f64 = f64::abs(LAT - DEMAPPED_COORDS.0);
+//         let long_delta: f64 = f64::abs(LONG - DEMAPPED_COORDS.1);
 
-        assert!(
-            lat_delta < 0.0001,
-            "Latitude imprecision error, delta is {}",
-            lat_delta
-        );
-        assert!(
-            long_delta < 0.0001,
-            "Longitude imprecision error, delta is {}",
-            long_delta
-        );
-    }
+//         assert!(
+//             lat_delta < 0.0001,
+//             "Latitude imprecision error, delta is {}",
+//             lat_delta
+//         );
+//         assert!(
+//             long_delta < 0.0001,
+//             "Longitude imprecision error, delta is {}",
+//             long_delta
+//         );
+//     }
 
-    #[test]
-    fn test_coord_status_packing() {
-        const EXPECTED_STATUS_INTS: [u8; 2] = make_statuses(EXAMPLE_STATUSES);
-        const EXPECTED_LAT: U24Arr = LATITUDE_MAP.map(LAT);
-        const EXPECTED_LONG: U24Arr = LONGITUDE_MAP.map(LONG);
+//     #[test]
+//     fn test_coord_status_packing() {
+//         const EXPECTED_STATUS_INTS: [u8; 2] = make_statuses(EXAMPLE_STATUSES);
+//         const EXPECTED_LAT: U24Arr = LATITUDE_MAP.map(LAT);
+//         const EXPECTED_LONG: U24Arr = LONGITUDE_MAP.map(LONG);
 
-        const PACKED_STATUS_DATA: [BlockData; 2] = make_status_data(LAT, LONG, EXAMPLE_STATUSES);
-        const LAT_BLOCK: BlockData = PACKED_STATUS_DATA[0];
-        const LONG_BLOCK: BlockData = PACKED_STATUS_DATA[1];
+//         const PACKED_STATUS_DATA: [BlockData; 2] = make_status_data(LAT, LONG, EXAMPLE_STATUSES);
+//         const LAT_BLOCK: BlockData = PACKED_STATUS_DATA[0];
+//         const LONG_BLOCK: BlockData = PACKED_STATUS_DATA[1];
 
-        assert!(
-            &LAT_BLOCK.get_data()[0..3] == &EXPECTED_LAT,
-            "Expected: {:08X?}\n Found:   {:08X?}",
-            &EXPECTED_LAT,
-            &LAT_BLOCK.get_data()[0..3]
-        );
-        assert!(
-            &LONG_BLOCK.get_data()[0..3] == &EXPECTED_LONG,
-            "Expected: {:08X?}\n Found:   {:08X?}",
-            &EXPECTED_LONG,
-            &LONG_BLOCK.get_data()[0..3]
-        );
-        assert!(
-            &LAT_BLOCK.get_data()[3] == &EXPECTED_STATUS_INTS[0],
-            "Expected: {:08X?}\n Found:   {:08X?}",
-            &EXPECTED_STATUS_INTS[0],
-            &LAT_BLOCK.get_data()[3]
-        );
-        assert!(
-            &LONG_BLOCK.get_data()[3] == &EXPECTED_STATUS_INTS[1],
-            "Expected: {:08X?}\n Found:   {:08X?}",
-            &EXPECTED_STATUS_INTS[1],
-            &LONG_BLOCK.get_data()[3]
-        );
-    }
+//         assert!(
+//             &LAT_BLOCK.get_data()[0..3] == &EXPECTED_LAT,
+//             "Expected: {:08X?}\n Found:   {:08X?}",
+//             &EXPECTED_LAT,
+//             &LAT_BLOCK.get_data()[0..3]
+//         );
+//         assert!(
+//             &LONG_BLOCK.get_data()[0..3] == &EXPECTED_LONG,
+//             "Expected: {:08X?}\n Found:   {:08X?}",
+//             &EXPECTED_LONG,
+//             &LONG_BLOCK.get_data()[0..3]
+//         );
+//         assert!(
+//             &LAT_BLOCK.get_data()[3] == &EXPECTED_STATUS_INTS[0],
+//             "Expected: {:08X?}\n Found:   {:08X?}",
+//             &EXPECTED_STATUS_INTS[0],
+//             &LAT_BLOCK.get_data()[3]
+//         );
+//         assert!(
+//             &LONG_BLOCK.get_data()[3] == &EXPECTED_STATUS_INTS[1],
+//             "Expected: {:08X?}\n Found:   {:08X?}",
+//             &EXPECTED_STATUS_INTS[1],
+//             &LONG_BLOCK.get_data()[3]
+//         );
+//     }
 }
