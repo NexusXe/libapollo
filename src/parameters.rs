@@ -139,7 +139,10 @@ impl BlockIdent {
 
 pub type BlockIdentStack = [BlockIdent; BLOCK_STACK_DATA_COUNT];
 
-pub const fn calculate_block_starts_ends(blockconfigs: BlockConfigStack, blocktypes: BlockTypeStack) -> BlockIdentStack {
+pub const fn calculate_block_starts_ends(
+    blockconfigs: BlockConfigStack,
+    blocktypes: BlockTypeStack,
+) -> BlockIdentStack {
     let mut _blockidentstack: BlockIdentStack = [BlockIdent::new(); BLOCK_STACK_DATA_COUNT];
 
     _blockidentstack[0] = BlockIdent {
@@ -191,8 +194,6 @@ const BLOCK_CONFIG_STACK: BlockConfigStack = {
 };
 
 // TODO: derive [BLOCK_CONFIG_STACK] from [BLOCK_TYPE_STACK]
-
-
 
 const _: () = assert!(BLOCK_CONFIG_STACK.len() == BLOCK_STACK_DATA_COUNT);
 
