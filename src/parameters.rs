@@ -1,6 +1,4 @@
 pub const NOMINAL_VOLTAGE: f32 = 3.6; // nominal battery voltage, in volts
-pub const OLC_PRECISION: usize = 8; // number of significant digits in the Open Location Code
-pub const OLC_CODE_LENGTH: usize = OLC_PRECISION + 8; // length of the Open Location Code, in characters
 pub const CALLSIGN: &[u8] = b"KD9TFA"; // callsign of the balloon. MUST be an even number of characters, Space padding at the end is OK.
 pub const FLOAT_PRECISION: usize = 8; // number of significant digits in the floating point data
 pub const BAUDRATE: u16 = 1;
