@@ -16,6 +16,33 @@ pub const FIGURES_FRAME_SIZE: usize = 1024; // bytes
 
 // packet related constants
 
+pub struct BlockCfg {
+    block_type: BlockType,
+    block_bounds: (usize, usize),
+}
+
+impl BlockCfg {
+    pub fn new() -> Self {
+         Self {
+            block_type: BlockType::NONE,
+            block_bounds: (0, 0),
+            }
+    }
+}
+
+const BLOCK_COUNT: usize = 6;
+
+pub const BLOCK_TYPE_STACK: [BlockType; BLOCK_COUNT] = [
+    BlockType::I32,
+    BlockType::F32,
+    BlockType::F32,
+    BlockType::I32,
+    BlockType::I32,
+    BlockType::BYTES,
+];
+
+
+
 pub const BLOCK_DELIMITER_SIZE: usize = core::mem::size_of_val(&BLOCK_DELIMITER);
 pub const BARE_MESSAGE_LENGTH_BYTES: usize = 64; // Bare message length, in bytes.
 pub const BARE_MESSAGE_LENGTH_BLOCKS: usize = (BARE_MESSAGE_LENGTH_BYTES) >> (2 ^ BLOCK_LENGTH); // Message length, in blocks, omitting the FEC
@@ -116,7 +143,7 @@ impl BlockType {
     }
 }
 
-type BlockTypeStack = [BlockType; BLOCK_STACK_DATA_COUNT];
+type BlockTypeStack = [BlockType; BLOCK_TYPE_STACK.len()];
 
 #[derive(Clone, Copy)]
 pub struct BlockIdent {
@@ -172,15 +199,6 @@ pub const fn calculate_block_starts_ends(
 
 pub type U24Arr = [u8; 3];
 pub type U48Arr = [U24Arr; 2];
-
-const BLOCK_TYPE_STACK: BlockTypeStack = [
-    BlockType::I32,
-    BlockType::F32,
-    BlockType::F32,
-    BlockType::I32,
-    BlockType::I32,
-    BlockType::BYTES,
-];
 
 const BLOCK_CONFIG_STACK: BlockConfigStack = {
     let mut output: BlockConfigStack = [0usize; BLOCK_STACK_DATA_COUNT];
