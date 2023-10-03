@@ -36,6 +36,8 @@ pub mod telemetry;
 use crate::telemetry::{construct_blocks, construct_packet, encode_packet, BlockStackData};
 use parameters::*;
 
+pub mod qpacket;
+
 pub fn generate_packet(_blockstackdata: BlockStackData) -> TotalMessage {
     let _blocks = construct_blocks(&_blockstackdata);
     let _packet: BareMessage = construct_packet(_blocks);

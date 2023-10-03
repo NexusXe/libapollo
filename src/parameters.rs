@@ -70,6 +70,8 @@ pub const F64_DATA_SIZE: usize = core::mem::size_of::<f64>();
 pub const F32_DATA_SIZE: usize = core::mem::size_of::<f32>();
 pub const I32_DATA_SIZE: usize = core::mem::size_of::<i32>();
 pub const U32_DATA_SIZE: usize = core::mem::size_of::<u32>();
+pub const I16_DATA_SIZE: usize = core::mem::size_of::<i16>();
+pub const U16_DATA_SIZE: usize = core::mem::size_of::<u16>();
 pub const BYTES_DATA_SIZE: usize = core::mem::size_of::<[u8; 4]>();
 
 pub const BLOCK_LABEL_SIZE: usize = 1;
@@ -124,9 +126,12 @@ type BlockConfigStack = [BlockConfig; BLOCK_STACK_DATA_COUNT];
 
 #[derive(Clone, Copy)]
 pub enum BlockType {
+    CALLSIGN,
     F32,
     I32,
     U32,
+    I16,
+    U16,
     BYTES,
     NONE,
 }
@@ -134,9 +139,12 @@ pub enum BlockType {
 impl BlockType {
     pub const fn len(&self) -> usize {
         match self {
+            Self::CALLSIGN => CALLSIGN.len(),
             Self::F32 => F32_DATA_SIZE,
             Self::I32 => I32_DATA_SIZE,
             Self::U32 => I32_DATA_SIZE,
+            Self::I16 => I16_DATA_SIZE,
+            Self::U16 => U16_DATA_SIZE,
             Self::BYTES => BYTES_DATA_SIZE,
             Self::NONE => 0usize,
         }
