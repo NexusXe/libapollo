@@ -23,10 +23,10 @@ pub struct BlockCfg {
 
 impl BlockCfg {
     pub fn new() -> Self {
-         Self {
+        Self {
             block_type: BlockType::NONE,
             block_bounds: (0, 0),
-            }
+        }
     }
 }
 
@@ -40,8 +40,6 @@ pub const BLOCK_TYPE_STACK: [BlockType; BLOCK_COUNT] = [
     BlockType::I32,
     BlockType::BYTES,
 ];
-
-
 
 pub const BLOCK_DELIMITER_SIZE: usize = core::mem::size_of_val(&BLOCK_DELIMITER);
 pub const BARE_MESSAGE_LENGTH_BYTES: usize = 64; // Bare message length, in bytes.
