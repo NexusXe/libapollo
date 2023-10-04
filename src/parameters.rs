@@ -16,20 +16,6 @@ pub const FIGURES_FRAME_SIZE: usize = 1024; // bytes
 
 // packet related constants
 
-pub struct BlockCfg {
-    block_type: BlockType,
-    block_bounds: (usize, usize),
-}
-
-impl BlockCfg {
-    pub fn new() -> Self {
-        Self {
-            block_type: BlockType::NONE,
-            block_bounds: (0, 0),
-        }
-    }
-}
-
 const BLOCK_COUNT: usize = 6;
 
 pub const BLOCK_TYPE_STACK: [BlockType; BLOCK_COUNT] = [

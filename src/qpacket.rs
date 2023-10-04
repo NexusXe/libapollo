@@ -2,7 +2,7 @@ use core::mem;
 
 use crate::parameters::*;
 
-const TOTAL_DATA_BLOCKS: usize = 5;
+const TOTAL_DATA_BLOCKS: usize = 16;
 const FEC_BYTES: usize = 19;
 
 type BlockLabelType = u8;
@@ -27,6 +27,50 @@ const BLOCK_CFG_STACK: BlockCfgStack = [
     },
     BlockCfg {
         block_type: BlockType::I16, // temperature
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I16, // temperature
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I16, // temperature
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I32, // altitude
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I32, // altitude
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I32, // altitude
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I32, // altitude
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I32, // altitude
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I32, // altitude
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I32, // altitude
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I32, // altitude
+        do_transmit_label: true,
+    },
+    BlockCfg {
+        block_type: BlockType::I32, // altitude
         do_transmit_label: true,
     },
 ];
@@ -78,7 +122,7 @@ const fn cfg_stack_to_ident_stack(cfg_stack: BlockCfgStack) -> BlockIdentStack {
     // a block is its label, its data, and the following delimiter
     let mut output: BlockIdentStack = [BlockIdent::BLANK; TOTAL_DATA_BLOCKS];
     let mut i: usize = 0;
-    let mut current_packet_position: usize = 1usize; // bytes
+    let mut current_packet_position: usize = START_HEADER_DATA.len() + BLOCK_DELIMITER_SIZE; // bytes, accounting for START_HEADER_DATA and its delimiter
 
     while i < output.len() {
         if i > BlockLabelType::MAX as usize || i >= cfg_stack.len() {
@@ -89,7 +133,7 @@ const fn cfg_stack_to_ident_stack(cfg_stack: BlockCfgStack) -> BlockIdentStack {
         let _do_transmit_label = cfg_stack[i].do_transmit_label;
         let _block_label: BlockLabelType = FIRST_BLOCK_LABEL + i as BlockLabelType;
         let _block_size: usize = _block_type.len() + {if _do_transmit_label {mem::size_of::<BlockLabelType>()} else {0}} + BLOCK_DELIMITER_SIZE;
-        let end_position = current_packet_position + _block_size;
+        let end_position = current_packet_position + _block_size - 1;
         output[i] = BlockIdent {
             block_type: cfg_stack[i].block_type,
             label: _block_label,
@@ -103,7 +147,7 @@ const fn cfg_stack_to_ident_stack(cfg_stack: BlockCfgStack) -> BlockIdentStack {
 }
 
 pub const BLOCK_IDENT_STACK: BlockIdentStack = cfg_stack_to_ident_stack(BLOCK_CFG_STACK);
-pub const QPACKET_DATA_LEN: usize = BLOCK_IDENT_STACK[BLOCK_IDENT_STACK.len() - 1].position.1;
+pub const QPACKET_DATA_LEN: usize = BLOCK_IDENT_STACK[BLOCK_IDENT_STACK.len() - 1].position.1 - 1;
 const START_END_HEADER_SIZE: usize = mem::size_of_val::<_>(&START_END_HEADER);
 pub const QPAKCET_BARE_LEN: usize = START_HEADER_DATA.len() + QPACKET_DATA_LEN + START_END_HEADER_SIZE;
 pub const QPACKET_FULL_LEN: usize = QPAKCET_BARE_LEN + FEC_BYTES;
@@ -174,7 +218,82 @@ impl<'a> QPacketBlock<'a> {
 
 pub type QPacketBlockStack<'a> = [QPacketBlock<'a>; TOTAL_DATA_BLOCKS];
 
-pub const fn construct_bare_packet(_blockstack: QPacketBlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
-    
-    todo!()
+pub const fn construct_bare_packet(_blockstack: BlockIdentStack) -> [u8; QPAKCET_BARE_LEN] {
+    let mut output: [u8; QPAKCET_BARE_LEN] = [0u8; QPAKCET_BARE_LEN];
+    let mut i: usize = 0;
+    let mut x: usize = 0;
+
+    while x < START_HEADER_DATA.len() {
+        output[x] = START_HEADER_DATA[x];
+        x += 1;
+    }
+
+    let mut x: usize = 0;
+    while x < BLOCK_DELIMITER_SIZE { // manually insert first delimiter
+        output[x + START_HEADER_DATA.len()] = BLOCK_DELIMITER.to_be_bytes()[x];
+        x += 1;
+    }
+
+    while i < _blockstack.len() {
+        let _block = &_blockstack[i];
+
+        let mut left = _block.position.0;
+
+
+        if _block.do_transmit_label { // first is (maybe) the label,
+            output[left] = _block.label;
+            left += 1;
+        }
+        
+        while left <= _block.position.1 - BLOCK_DELIMITER_SIZE { // then the data,
+            output[left] = 0u8;
+            left += 1;
+        }
+
+        output[left] = BLOCK_DELIMITER.to_be_bytes()[0]; // and finally the delimiter.
+        left += 1;
+        output[left] = BLOCK_DELIMITER.to_be_bytes()[1];
+
+        i += 1;
+    }
+
+    let mut x: usize = 0;
+
+    while x < END_HEADER_DATA.len() {
+        output[output.len() - (END_HEADER_DATA.len() - x)] = END_HEADER_DATA[x];
+        x += 1;
+    }
+
+    output
+}
+
+pub const BARE_QPACKET: [u8; QPAKCET_BARE_LEN] = construct_bare_packet(BLOCK_IDENT_STACK);
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn check_packet_formation<const T: usize>(packet: [u8; T]) {
+        let mut _packet_head = [0u8; (START_HEADER_DATA.len() + BLOCK_DELIMITER_SIZE)];
+        let mut i: usize = 0;
+        _packet_head[0..START_HEADER_DATA.len()].copy_from_slice(&START_HEADER_DATA);
+        i += START_HEADER_DATA.len();
+        _packet_head[i..i+BLOCK_DELIMITER_SIZE].copy_from_slice(&BLOCK_DELIMITER.to_be_bytes());
+        assert_eq!(packet[0..i+BLOCK_DELIMITER_SIZE], _packet_head);
+
+        for block in BLOCK_IDENT_STACK {
+            assert_eq!(packet[block.position.0], block.label);
+            for x in 0..BLOCK_DELIMITER.to_be_bytes().len() {
+                const BLOCK_DELIMITER_BYTES: [u8; BLOCK_DELIMITER_SIZE] = BLOCK_DELIMITER.to_be_bytes();
+                assert_eq!(packet[(block.position.1 - (BLOCK_DELIMITER_SIZE - 1)) + x], BLOCK_DELIMITER_BYTES[x]);
+            }
+            
+        }
+    }
+
+    #[test]
+    pub fn check_blank_packet_formation() {
+        check_packet_formation(BARE_QPACKET);
+    }
 }

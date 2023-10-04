@@ -23,6 +23,7 @@
 #![allow(internal_features)]
 #![feature(const_float_classify)]
 #![feature(const_float_bits_conv)]
+#![feature(generic_arg_infer)]
 
 
 /// Functions relating to APRS and TNC function.
@@ -37,6 +38,7 @@ pub mod telemetry;
 use crate::telemetry::{construct_blocks, construct_packet, encode_packet, BlockStackData};
 use parameters::*;
 
+/// Unifying parameters and telemetry. Cleaning up a *lot* of messiness in parameters.
 pub mod qpacket;
 
 pub fn generate_packet(_blockstackdata: BlockStackData) -> TotalMessage {
