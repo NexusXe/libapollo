@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use core::mem;
 
 use crate::parameters::*;
@@ -102,17 +104,13 @@ impl BlockIdent {
         }
     }
 
-    pub const fn data_len(&self) -> usize {
+    const fn data_len(&self) -> usize {
         self.block_type.len()
     }
 
-    pub const fn total_len(&self) -> usize {
+    const fn total_len(&self) -> usize {
         debug_assert!(self.position.1 >= self.position.0);
         self.position.1 - self.position.0
-    }
-
-    pub const fn len(&self) -> usize {
-        self.total_len()
     }
 }
 
