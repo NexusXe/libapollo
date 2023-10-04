@@ -25,7 +25,6 @@
 #![feature(const_float_bits_conv)]
 #![feature(generic_arg_infer)]
 
-
 /// Functions relating to APRS and TNC function.
 pub mod figures;
 

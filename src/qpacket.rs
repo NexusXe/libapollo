@@ -86,7 +86,15 @@ const fn cfg_stack_to_ident_stack(cfg_stack: BlockCfgStack) -> BlockIdentStack {
         let _block_type = cfg_stack[i].block_type;
         let _do_transmit_label = cfg_stack[i].do_transmit_label;
         let _block_label: BlockLabelType = FIRST_BLOCK_LABEL + i as BlockLabelType;
-        let _block_size: usize = _block_type.len() + {if _do_transmit_label {mem::size_of::<BlockLabelType>()} else {0}} + BLOCK_DELIMITER_SIZE;
+        let _block_size: usize = _block_type.len()
+            + {
+                if _do_transmit_label {
+                    mem::size_of::<BlockLabelType>()
+                } else {
+                    0
+                }
+            }
+            + BLOCK_DELIMITER_SIZE;
         let end_position = current_packet_position + _block_size - 1;
         output[i] = BlockIdent {
             block_type: cfg_stack[i].block_type,
@@ -103,7 +111,8 @@ const fn cfg_stack_to_ident_stack(cfg_stack: BlockCfgStack) -> BlockIdentStack {
 const BLOCK_IDENT_STACK: BlockIdentStack = cfg_stack_to_ident_stack(BLOCK_CFG_STACK);
 pub const QPACKET_DATA_LEN: usize = BLOCK_IDENT_STACK[BLOCK_IDENT_STACK.len() - 1].position.1 - 1;
 const START_END_HEADER_SIZE: usize = mem::size_of_val::<_>(&START_END_HEADER);
-pub const QPAKCET_BARE_LEN: usize = START_HEADER_DATA.len() + QPACKET_DATA_LEN + START_END_HEADER_SIZE;
+pub const QPAKCET_BARE_LEN: usize =
+    START_HEADER_DATA.len() + QPACKET_DATA_LEN + START_END_HEADER_SIZE;
 pub const QPACKET_FULL_LEN: usize = QPAKCET_BARE_LEN + FEC_BYTES;
 const BLOCK_SIZE_STACK: [usize; TOTAL_DATA_BLOCKS] = {
     let mut output: [usize; TOTAL_DATA_BLOCKS] = [0usize; TOTAL_DATA_BLOCKS];
@@ -138,10 +147,9 @@ impl<'a> QPacketBlock<'a> {
     pub const fn len(&self) -> usize {
         self.identity.total_len()
     }
-    
+
     pub const fn as_bytes<const LEN: usize>(&self) -> [u8; LEN] {
         let mut output: [u8; LEN] = [0u8; LEN];
-        
 
         let mut i: usize = 0usize; // output position
         let mut x: usize = 0usize; // data position (can't use an iterator because this is a const fn)
@@ -172,7 +180,9 @@ impl<'a> QPacketBlock<'a> {
 
 pub type QPacketBlockStack<'a> = [QPacketBlock<'a>; TOTAL_DATA_BLOCKS];
 
-const fn construct_bare_packet<const DATA: u8>(_blockstack: BlockIdentStack) -> [u8; QPAKCET_BARE_LEN] {
+const fn construct_bare_packet<const DATA: u8>(
+    _blockstack: BlockIdentStack,
+) -> [u8; QPAKCET_BARE_LEN] {
     let mut output: [u8; QPAKCET_BARE_LEN] = [0u8; QPAKCET_BARE_LEN];
     let mut i: usize = 0;
     let mut x: usize = 0;
@@ -183,7 +193,9 @@ const fn construct_bare_packet<const DATA: u8>(_blockstack: BlockIdentStack) -> 
     }
 
     let mut x: usize = 0;
-    while x < BLOCK_DELIMITER_SIZE { // manually insert first delimiter
+
+    // manually insert first delimiter
+    while x < BLOCK_DELIMITER_SIZE {
         output[x + START_HEADER_DATA.len()] = BLOCK_DELIMITER.to_be_bytes()[x];
         x += 1;
     }
@@ -193,13 +205,14 @@ const fn construct_bare_packet<const DATA: u8>(_blockstack: BlockIdentStack) -> 
 
         let mut left = _block.position.0;
 
-
-        if _block.do_transmit_label { // first is (maybe) the label,
+        // first is (maybe) the label,
+        if _block.do_transmit_label {
             output[left] = _block.label;
             left += 1;
         }
-        
-        while left <= _block.position.1 - BLOCK_DELIMITER_SIZE { // then the data,
+
+        // then the data,
+        while left <= _block.position.1 - BLOCK_DELIMITER_SIZE {
             output[left] = DATA;
             left += 1;
         }
@@ -233,16 +246,19 @@ mod tests {
         let mut i: usize = 0;
         _packet_head[0..START_HEADER_DATA.len()].copy_from_slice(&START_HEADER_DATA);
         i += START_HEADER_DATA.len();
-        _packet_head[i..i+BLOCK_DELIMITER_SIZE].copy_from_slice(&BLOCK_DELIMITER.to_be_bytes());
-        assert_eq!(packet[0..i+BLOCK_DELIMITER_SIZE], _packet_head);
+        _packet_head[i..i + BLOCK_DELIMITER_SIZE].copy_from_slice(&BLOCK_DELIMITER.to_be_bytes());
+        assert_eq!(packet[0..i + BLOCK_DELIMITER_SIZE], _packet_head);
 
         for block in BLOCK_IDENT_STACK {
             assert_eq!(packet[block.position.0], block.label);
             for x in 0..BLOCK_DELIMITER.to_be_bytes().len() {
-                const BLOCK_DELIMITER_BYTES: [u8; BLOCK_DELIMITER_SIZE] = BLOCK_DELIMITER.to_be_bytes();
-                assert_eq!(packet[(block.position.1 - (BLOCK_DELIMITER_SIZE - 1)) + x], BLOCK_DELIMITER_BYTES[x]);
+                const BLOCK_DELIMITER_BYTES: [u8; BLOCK_DELIMITER_SIZE] =
+                    BLOCK_DELIMITER.to_be_bytes();
+                assert_eq!(
+                    packet[(block.position.1 - (BLOCK_DELIMITER_SIZE - 1)) + x],
+                    BLOCK_DELIMITER_BYTES[x]
+                );
             }
-            
         }
     }
 
