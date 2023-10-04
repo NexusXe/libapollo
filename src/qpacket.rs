@@ -4,12 +4,13 @@ use core::mem;
 
 use crate::parameters::*;
 
-const TOTAL_DATA_BLOCKS: usize = 5;
+
 const FEC_BYTES: usize = 19;
 
 type BlockLabelType = u8;
 const FIRST_BLOCK_LABEL: BlockLabelType = 128;
 
+pub const TOTAL_DATA_BLOCKS: usize = 5;
 const BLOCK_CFG_STACK: BlockCfgStack = [
     BlockCfg {
         block_type: BlockType::I32, // latitude
@@ -111,9 +112,9 @@ const fn cfg_stack_to_ident_stack(cfg_stack: BlockCfgStack) -> BlockIdentStack {
 const BLOCK_IDENT_STACK: BlockIdentStack = cfg_stack_to_ident_stack(BLOCK_CFG_STACK);
 pub const QPACKET_DATA_LEN: usize = BLOCK_IDENT_STACK[BLOCK_IDENT_STACK.len() - 1].position.1 - 1;
 const START_END_HEADER_SIZE: usize = mem::size_of_val::<_>(&START_END_HEADER);
-pub const QPAKCET_BARE_LEN: usize =
+pub const QPACKET_BARE_LEN: usize =
     START_HEADER_DATA.len() + QPACKET_DATA_LEN + START_END_HEADER_SIZE;
-pub const QPACKET_FULL_LEN: usize = QPAKCET_BARE_LEN + FEC_BYTES;
+pub const QPACKET_FULL_LEN: usize = QPACKET_BARE_LEN + FEC_BYTES;
 const BLOCK_SIZE_STACK: [usize; TOTAL_DATA_BLOCKS] = {
     let mut output: [usize; TOTAL_DATA_BLOCKS] = [0usize; TOTAL_DATA_BLOCKS];
     let mut i: usize = 0;
@@ -180,10 +181,10 @@ impl<'a> QPacketBlock<'a> {
 
 pub type QPacketBlockStack<'a> = [QPacketBlock<'a>; TOTAL_DATA_BLOCKS];
 
-const fn construct_bare_packet<const DATA: u8>(
+const fn construct_blank_packet<const DATA: u8>(
     _blockstack: BlockIdentStack,
-) -> [u8; QPAKCET_BARE_LEN] {
-    let mut output: [u8; QPAKCET_BARE_LEN] = [0u8; QPAKCET_BARE_LEN];
+) -> [u8; QPACKET_BARE_LEN] {
+    let mut output: [u8; QPACKET_BARE_LEN] = [0u8; QPACKET_BARE_LEN];
     let mut i: usize = 0;
     let mut x: usize = 0;
 
@@ -234,8 +235,23 @@ const fn construct_bare_packet<const DATA: u8>(
     output
 }
 
-pub const MIN_QPACKET: [u8; QPAKCET_BARE_LEN] = construct_bare_packet::<0x00u8>(BLOCK_IDENT_STACK);
-pub const MAX_QPACKET: [u8; QPAKCET_BARE_LEN] = construct_bare_packet::<0xFFu8>(BLOCK_IDENT_STACK);
+pub fn construct_packet(_block_stack: QPacketBlockStack) -> [u8; QPACKET_FULL_LEN] {
+    let mut unencoded_output: [u8; QPACKET_BARE_LEN] = [0u8; QPACKET_BARE_LEN];
+    let mut packet_position: usize = 0;
+    unencoded_output[0..START_HEADER_DATA.len()].copy_from_slice(&START_HEADER_DATA);
+    packet_position += START_HEADER_DATA.len();
+    unencoded_output[packet_position..packet_position + BLOCK_DELIMITER_SIZE].copy_from_slice(&BLOCK_DELIMITER.to_be_bytes());
+    
+    for _block in _block_stack {
+        unencoded_output[_block.identity.position.0.._block.identity.position.1].copy_from_slice(_block.data); // TODO: THIS IS NOT CORRECT! USE DATA BOUNDS INSTEAD
+    }
+
+    // todo: configure reed solomon for new configurable packet size
+    todo!()
+}
+
+pub const MIN_QPACKET: [u8; QPACKET_BARE_LEN] = construct_blank_packet::<0x00u8>(BLOCK_IDENT_STACK);
+pub const MAX_QPACKET: [u8; QPACKET_BARE_LEN] = construct_blank_packet::<0xFFu8>(BLOCK_IDENT_STACK);
 
 #[cfg(test)]
 mod tests {
