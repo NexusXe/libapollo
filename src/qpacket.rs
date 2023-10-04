@@ -82,7 +82,7 @@ pub struct BlockCfg {
 
 type BlockCfgStack = [BlockCfg; TOTAL_DATA_BLOCKS];
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy)]
 pub struct BlockIdent {
     block_type: BlockType,
     label: BlockLabelType,
