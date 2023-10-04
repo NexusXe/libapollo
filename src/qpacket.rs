@@ -172,7 +172,7 @@ impl<'a> QPacketBlock<'a> {
 
 pub type QPacketBlockStack<'a> = [QPacketBlock<'a>; TOTAL_DATA_BLOCKS];
 
-const fn construct_bare_packet(_blockstack: BlockIdentStack) -> [u8; QPAKCET_BARE_LEN] {
+const fn construct_bare_packet<const DATA: u8>(_blockstack: BlockIdentStack) -> [u8; QPAKCET_BARE_LEN] {
     let mut output: [u8; QPAKCET_BARE_LEN] = [0u8; QPAKCET_BARE_LEN];
     let mut i: usize = 0;
     let mut x: usize = 0;
@@ -200,7 +200,7 @@ const fn construct_bare_packet(_blockstack: BlockIdentStack) -> [u8; QPAKCET_BAR
         }
         
         while left <= _block.position.1 - BLOCK_DELIMITER_SIZE { // then the data,
-            output[left] = 0u8;
+            output[left] = DATA;
             left += 1;
         }
 
@@ -221,8 +221,8 @@ const fn construct_bare_packet(_blockstack: BlockIdentStack) -> [u8; QPAKCET_BAR
     output
 }
 
-pub const BARE_QPACKET: [u8; QPAKCET_BARE_LEN] = construct_bare_packet(BLOCK_IDENT_STACK);
-
+pub const MIN_QPACKET: [u8; QPAKCET_BARE_LEN] = construct_bare_packet::<0x00u8>(BLOCK_IDENT_STACK);
+pub const MAX_QPACKET: [u8; QPAKCET_BARE_LEN] = construct_bare_packet::<0xFFu8>(BLOCK_IDENT_STACK);
 
 #[cfg(test)]
 mod tests {
@@ -248,6 +248,7 @@ mod tests {
 
     #[test]
     pub fn check_blank_packet_formation() {
-        check_packet_formation(BARE_QPACKET);
+        check_packet_formation(MIN_QPACKET);
+        check_packet_formation(MAX_QPACKET);
     }
 }
