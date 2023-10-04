@@ -122,7 +122,7 @@ const PACKET_BEGINNING_OFFSET: usize = START_HEADER_DATA.len() + BLOCK_DELIMITER
 type BlockConfig = usize;
 type BlockConfigStack = [BlockConfig; BLOCK_STACK_DATA_COUNT];
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum BlockType {
     CALLSIGN,
     F32,

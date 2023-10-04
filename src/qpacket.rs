@@ -1,18 +1,14 @@
-use core::{mem, convert::identity};
+use core::mem;
 
 use crate::parameters::*;
 
-const TOTAL_DATA_BLOCKS: usize = 6;
+const TOTAL_DATA_BLOCKS: usize = 5;
 const FEC_BYTES: usize = 19;
 
 type BlockLabelType = u8;
 const FIRST_BLOCK_LABEL: BlockLabelType = 128;
 
 const BLOCK_CFG_STACK: BlockCfgStack = [
-    BlockCfg {
-        block_type: BlockType::CALLSIGN,
-        do_transmit_label: false,
-    },
     BlockCfg {
         block_type: BlockType::I32, // latitude
         do_transmit_label: true,
@@ -42,7 +38,7 @@ pub struct BlockCfg {
 
 type BlockCfgStack = [BlockCfg; TOTAL_DATA_BLOCKS];
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BlockIdent {
     block_type: BlockType,
     label: BlockLabelType,
@@ -109,23 +105,76 @@ const fn cfg_stack_to_ident_stack(cfg_stack: BlockCfgStack) -> BlockIdentStack {
 pub const BLOCK_IDENT_STACK: BlockIdentStack = cfg_stack_to_ident_stack(BLOCK_CFG_STACK);
 pub const QPACKET_DATA_LEN: usize = BLOCK_IDENT_STACK[BLOCK_IDENT_STACK.len() - 1].position.1;
 const START_END_HEADER_SIZE: usize = mem::size_of_val::<_>(&START_END_HEADER);
-pub const QPAKCET_BARE_LEN: usize = START_END_HEADER_SIZE + QPACKET_DATA_LEN + START_END_HEADER_SIZE;
+pub const QPAKCET_BARE_LEN: usize = START_HEADER_DATA.len() + QPACKET_DATA_LEN + START_END_HEADER_SIZE;
 pub const QPACKET_FULL_LEN: usize = QPAKCET_BARE_LEN + FEC_BYTES;
+pub const BLOCK_SIZE_STACK: [usize; TOTAL_DATA_BLOCKS] = {
+    let mut output: [usize; TOTAL_DATA_BLOCKS] = [0usize; TOTAL_DATA_BLOCKS];
+    let mut i: usize = 0;
 
-struct QPacketBlock<'a> {
+    while i < TOTAL_DATA_BLOCKS {
+        output[i] = BLOCK_IDENT_STACK[i].total_len();
+        i += 1;
+    }
+
+    output
+};
+
+pub struct QPacketBlock<'a> {
     identity: BlockIdent,
     data: &'a [u8],
 }
 
 impl<'a> QPacketBlock<'a> {
-    const BLANK: Self = Self {
+    pub const BLANK: Self = Self {
         identity: BlockIdent::BLANK,
         data: &[u8::MAX],
     };
 
-    const fn as_bytes(&self) -> &'a [u8] {
-        todo!()
+    pub const fn new(_ident: &'static BlockIdent, _data: &'a [u8]) -> Self {
+        Self {
+            identity: *_ident,
+            data: _data,
+        }
+    }
 
+    pub const fn len(&self) -> usize {
+        self.identity.total_len()
+    }
+    
+    pub const fn as_bytes<const LEN: usize>(&self) -> [u8; LEN] {
+        let mut output: [u8; LEN] = [0u8; LEN];
+        
+
+        let mut i: usize = 0usize; // output position
+        let mut x: usize = 0usize; // data position (can't use an iterator because this is a const fn)
+
+        // first two bytes are always delimiter
+        output[i] = BLOCK_DELIMITER.to_be_bytes()[0];
+        i += 1;
+        output[i] = BLOCK_DELIMITER.to_be_bytes()[1];
+        i += 1;
+
+        if self.identity.do_transmit_label {
+            output[i] = self.identity.label;
+            i += 1;
+        }
+
+        while i < self.len() {
+            if i >= self.len() || x >= self.data.len() {
+                unreachable!()
+            }
+            output[i] = self.data[x];
+            i += 1;
+            x += 1;
+        }
+
+        output
     }
 }
 
+pub type QPacketBlockStack<'a> = [QPacketBlock<'a>; TOTAL_DATA_BLOCKS];
+
+pub const fn construct_bare_packet(_blockstack: QPacketBlockStack) -> [u8; BARE_MESSAGE_LENGTH_BYTES] {
+    
+    todo!()
+}
