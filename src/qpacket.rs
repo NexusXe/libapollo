@@ -4,7 +4,7 @@ use core::mem;
 
 use crate::parameters::*;
 
-const TOTAL_DATA_BLOCKS: usize = 16;
+const TOTAL_DATA_BLOCKS: usize = 5;
 const FEC_BYTES: usize = 19;
 
 type BlockLabelType = u8;
@@ -31,53 +31,9 @@ const BLOCK_CFG_STACK: BlockCfgStack = [
         block_type: BlockType::I16, // temperature
         do_transmit_label: true,
     },
-    BlockCfg {
-        block_type: BlockType::I16, // temperature
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I16, // temperature
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I32, // altitude
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I32, // altitude
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I32, // altitude
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I32, // altitude
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I32, // altitude
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I32, // altitude
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I32, // altitude
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I32, // altitude
-        do_transmit_label: true,
-    },
-    BlockCfg {
-        block_type: BlockType::I32, // altitude
-        do_transmit_label: true,
-    },
 ];
 
-pub struct BlockCfg {
+struct BlockCfg {
     block_type: BlockType,
     do_transmit_label: bool,
 }
@@ -144,12 +100,12 @@ const fn cfg_stack_to_ident_stack(cfg_stack: BlockCfgStack) -> BlockIdentStack {
     output
 }
 
-pub const BLOCK_IDENT_STACK: BlockIdentStack = cfg_stack_to_ident_stack(BLOCK_CFG_STACK);
+const BLOCK_IDENT_STACK: BlockIdentStack = cfg_stack_to_ident_stack(BLOCK_CFG_STACK);
 pub const QPACKET_DATA_LEN: usize = BLOCK_IDENT_STACK[BLOCK_IDENT_STACK.len() - 1].position.1 - 1;
 const START_END_HEADER_SIZE: usize = mem::size_of_val::<_>(&START_END_HEADER);
 pub const QPAKCET_BARE_LEN: usize = START_HEADER_DATA.len() + QPACKET_DATA_LEN + START_END_HEADER_SIZE;
 pub const QPACKET_FULL_LEN: usize = QPAKCET_BARE_LEN + FEC_BYTES;
-pub const BLOCK_SIZE_STACK: [usize; TOTAL_DATA_BLOCKS] = {
+const BLOCK_SIZE_STACK: [usize; TOTAL_DATA_BLOCKS] = {
     let mut output: [usize; TOTAL_DATA_BLOCKS] = [0usize; TOTAL_DATA_BLOCKS];
     let mut i: usize = 0;
 
@@ -216,7 +172,7 @@ impl<'a> QPacketBlock<'a> {
 
 pub type QPacketBlockStack<'a> = [QPacketBlock<'a>; TOTAL_DATA_BLOCKS];
 
-pub const fn construct_bare_packet(_blockstack: BlockIdentStack) -> [u8; QPAKCET_BARE_LEN] {
+const fn construct_bare_packet(_blockstack: BlockIdentStack) -> [u8; QPAKCET_BARE_LEN] {
     let mut output: [u8; QPAKCET_BARE_LEN] = [0u8; QPAKCET_BARE_LEN];
     let mut i: usize = 0;
     let mut x: usize = 0;
