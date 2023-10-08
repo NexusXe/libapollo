@@ -4,7 +4,7 @@ use core::mem;
 
 use crate::parameters::*;
 
-
+use reed_solomon::{Decoder, Encoder};
 const FEC_BYTES: usize = 19;
 
 type BlockLabelType = u8;
@@ -33,6 +33,18 @@ const BLOCK_CFG_STACK: BlockCfgStack = [
         do_transmit_label: true,
     },
 ];
+
+const BLOCK_TYPE_STACK: [BlockType; BLOCK_CFG_STACK.len()] = {
+    let mut output: [BlockType; BLOCK_CFG_STACK.len()] = [BlockType::NONE; BLOCK_CFG_STACK.len()];
+    let mut i: usize = 0;
+
+    while i < BLOCK_CFG_STACK.len() {
+        output[i] = BLOCK_CFG_STACK[i].block_type;
+        i += 1;
+    }
+
+    output
+};
 
 struct BlockCfg {
     block_type: BlockType,
@@ -126,6 +138,8 @@ const BLOCK_SIZE_STACK: [usize; TOTAL_DATA_BLOCKS] = {
 
     output
 };
+type BareQPacket = [u8; QPACKET_BARE_LEN];
+type FullQPacket = [u8; QPACKET_FULL_LEN];
 
 pub struct QPacketBlock<'a> {
     identity: BlockIdent,
@@ -181,10 +195,8 @@ impl<'a> QPacketBlock<'a> {
 
 pub type QPacketBlockStack<'a> = [QPacketBlock<'a>; TOTAL_DATA_BLOCKS];
 
-const fn construct_blank_packet<const DATA: u8>(
-    _blockstack: BlockIdentStack,
-) -> [u8; QPACKET_BARE_LEN] {
-    let mut output: [u8; QPACKET_BARE_LEN] = [0u8; QPACKET_BARE_LEN];
+const fn construct_blank_packet<const DATA: u8>(_blockstack: BlockIdentStack) -> BareQPacket {
+    let mut output: BareQPacket = [0u8; QPACKET_BARE_LEN];
     let mut i: usize = 0;
     let mut x: usize = 0;
 
@@ -235,33 +247,53 @@ const fn construct_blank_packet<const DATA: u8>(
     output
 }
 
-pub fn construct_packet_nofec(_block_stack: QPacketBlockStack) -> [u8; QPACKET_BARE_LEN] {
-    let mut unencoded_output: [u8; QPACKET_BARE_LEN] = [0u8; QPACKET_BARE_LEN];
+pub fn construct_packet_nofec(_block_stack: QPacketBlockStack) -> BareQPacket {
+    let mut unencoded_output: BareQPacket = [0u8; QPACKET_BARE_LEN];
     let mut packet_position: usize = 0;
     unencoded_output[0..START_HEADER_DATA.len()].copy_from_slice(&START_HEADER_DATA);
     packet_position += START_HEADER_DATA.len();
-    unencoded_output[packet_position..packet_position + BLOCK_DELIMITER_SIZE].copy_from_slice(&BLOCK_DELIMITER.to_be_bytes());
-    
+    unencoded_output[packet_position..packet_position + BLOCK_DELIMITER_SIZE]
+        .copy_from_slice(&BLOCK_DELIMITER.to_be_bytes());
+
     for _block in _block_stack {
         if _block.identity.do_transmit_label {
             unencoded_output[_block.identity.position.0] = _block.identity.label;
         }
-
-        let data_beginning_bound: usize = _block.identity.position.0 + {if _block.identity.do_transmit_label {1} else {0}};
+        let data_beginning_bound: usize = _block.identity.position.0 + {
+            if _block.identity.do_transmit_label {
+                1
+            } else {
+                0
+            }
+        };
         //debug_assert_eq!(_block.identity.position.1 - (_block.identity.data_len() + BLOCK_DELIMITER_SIZE), data_beginning_bound);
-        debug_assert!((_block.identity.position.1 - (_block.identity.data_len() + BLOCK_DELIMITER_SIZE)) >= _block.identity.position.0);
-        unencoded_output[data_beginning_bound..data_beginning_bound + _block.identity.data_len()].copy_from_slice(_block.data);
-        unencoded_output[_block.identity.position.1 - 1.._block.identity.position.1 + 1].copy_from_slice(&BLOCK_DELIMITER.to_be_bytes())
+        debug_assert!(
+            (_block.identity.position.1 - (_block.identity.data_len() + BLOCK_DELIMITER_SIZE))
+                >= _block.identity.position.0
+        );
+        unencoded_output[data_beginning_bound..data_beginning_bound + _block.identity.data_len()]
+            .copy_from_slice(_block.data);
+        unencoded_output[_block.identity.position.1 - 1.._block.identity.position.1 + 1]
+            .copy_from_slice(&BLOCK_DELIMITER.to_be_bytes())
     }
-    
-    debug_assert_eq!(&unencoded_output[QPACKET_BARE_LEN - END_HEADER_DATA.len()..QPACKET_BARE_LEN], [0u8; END_HEADER_DATA.len()]);
-    unencoded_output[QPACKET_BARE_LEN - END_HEADER_DATA.len()..QPACKET_BARE_LEN].copy_from_slice(&END_HEADER_DATA);
 
+    debug_assert_eq!(
+        &unencoded_output[QPACKET_BARE_LEN - END_HEADER_DATA.len()..QPACKET_BARE_LEN],
+        [0u8; END_HEADER_DATA.len()]
+    );
+    unencoded_output[QPACKET_BARE_LEN - END_HEADER_DATA.len()..QPACKET_BARE_LEN]
+        .copy_from_slice(&END_HEADER_DATA);
     unencoded_output
 }
 
-pub const MIN_QPACKET: [u8; QPACKET_BARE_LEN] = construct_blank_packet::<0x00u8>(BLOCK_IDENT_STACK);
-pub const MAX_QPACKET: [u8; QPACKET_BARE_LEN] = construct_blank_packet::<0xFFu8>(BLOCK_IDENT_STACK);
+pub const MIN_QPACKET: BareQPacket = construct_blank_packet::<0x00u8>(BLOCK_IDENT_STACK);
+pub const MAX_QPACKET: BareQPacket = construct_blank_packet::<0xFFu8>(BLOCK_IDENT_STACK);
+
+pub fn encode_qpacket(_bare_packet: BareQPacket) -> FullQPacket {
+    let enc = Encoder::new(FEC_BYTES);
+    let _encoded_packet = enc.encode(&_bare_packet[..]);
+    _encoded_packet[..].try_into().unwrap()
+}
 
 #[cfg(test)]
 mod tests {
@@ -291,21 +323,33 @@ mod tests {
     #[test]
     pub fn check_blank_packet_formation() {
         let blank_block_stack: [QPacketBlock; TOTAL_DATA_BLOCKS] = {
-            let mut output: [QPacketBlock; TOTAL_DATA_BLOCKS] = [QPacketBlock::BLANK; TOTAL_DATA_BLOCKS];
+            let mut output: [QPacketBlock; TOTAL_DATA_BLOCKS] =
+                [QPacketBlock::BLANK; TOTAL_DATA_BLOCKS];
 
             for i in 0..BLOCK_IDENT_STACK.len() {
                 output[i] = QPacketBlock {
                     identity: BLOCK_IDENT_STACK[i],
-                    data: {if BLOCK_IDENT_STACK[i].data_len() == 4 {&[0u8; 4]} else {&[0u8; 2]} },
-                }
+                    data: {
+                        if BLOCK_IDENT_STACK[i].data_len() == 4 {
+                            &[0u8; 4]
+                        } else {
+                            &[0u8; 2]
+                        }
+                    },
+                };
             }
             output
         };
 
-        let manual_min_qpacket: [u8; QPACKET_BARE_LEN] = construct_packet_nofec(blank_block_stack);
+        let manual_min_qpacket: BareQPacket = construct_packet_nofec(blank_block_stack);
 
         check_packet_formation(MIN_QPACKET);
         check_packet_formation(MAX_QPACKET);
         assert_eq!(MIN_QPACKET, manual_min_qpacket);
+    }
+
+    #[test]
+    pub fn a() {
+        panic!("{:02X?}", encode_qpacket(MIN_QPACKET));
     }
 }
